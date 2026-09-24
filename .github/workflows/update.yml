@@ -1,0 +1,103 @@
+name: Update matches and deploy
+
+on:
+  schedule:
+    # 11:00 in Stockholm is 09:00 UTC in summer (CEST) and 10:00 UTC in winter (CET).
+    # All three fire every day; the gate step lets through only the first one that runs
+    # at or after 11:00 local time. The 11:30 UTC run is a safety net for delayed runs.
+    - cron: '0 9 * * *'
+    - cron: '0 10 * * *'
+    - cron: '30 11 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: update-and-deploy
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gate on Stockholm time
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          hour=$(TZ=Europe/Stockholm date +%-H)
+          today=$(TZ=Europe/Stockholm date +%F)
+          last=$(cat cache/last-scheduled-run.txt 2>/dev/null || true)
+          echo "Stockholm hour $hour, today $today, last scheduled run $last"
+          if [ "$hour" -ge 11 ] && [ "$last" != "$today" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 22
+
+      # The OSM gazetteer is ~3 MB and only rebuilt monthly, so it lives in the Actions
+      # cache instead of git. A fresh key per run always saves the newest copy.
+      - name: Restore OSM gazetteer
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            cache/osm-gazetteer.json
+            cache/osm-tiles
+          key: osm-gazetteer-${{ github.run_id }}
+          restore-keys: osm-gazetteer-
+
+      - name: Fetch matches and place venues
+        if: steps.gate.outputs.run == 'true'
+        run: node scripts/update.mjs
+        env:
+          DAYS: 8
+          NOMINATIM_BUDGET: 150
+
+      - name: Commit venue cache
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            TZ=Europe/Stockholm date +%F > cache/last-scheduled-run.txt
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cache/
+          if git diff --cached --quiet; then echo "No cache changes"; exit 0; fi
+          git commit -m "Update venue cache $(TZ=Europe/Stockholm date +%F)"
+          git pull --rebase -X theirs && git push
+
+      - uses: actions/configure-pages@v5
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.gate.outputs.run == 'true'
+        with:
+          path: public
+
+  deploy:
+    needs: update
+    if: needs.update.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,14 @@
+{
+  "name": "fotbollskartan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Every football match in Sweden this week on one map.",
+  "type": "module",
+  "scripts": {
+    "update": "node scripts/update.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fotbollskartan</title>
+  <meta name="description" content="Every football match in Sweden this week on one map, from Allsvenskan to U10. Find games near you.">
+  <meta name="theme-color" content="#0b6b3a">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="panel" id="panel" aria-label="Filters and matches">
+      <header class="brand">
+        <button class="sheet-handle" id="sheetHandle" aria-label="Expand match list" aria-expanded="false"></button>
+        <div class="brand-row">
+          <h1><span aria-hidden="true">⚽</span> Fotbollskartan</h1>
+          <button class="btn btn-ghost" id="filtersToggle" aria-expanded="false" aria-controls="filters">Filters <span class="badge" id="filterCount" hidden></span></button>
+        </div>
+        <p class="tagline" id="summary">Loading matches…</p>
+      </header>
+
+      <section class="filters" id="filters">
+        <label class="search">
+          <span class="visually-hidden">Search</span>
+          <input id="q" type="search" placeholder="Search team, league or venue" autocomplete="off">
+        </label>
+
+        <div class="chips scroll" id="days" role="group" aria-label="Day"></div>
+
+        <div class="segmented" id="gender" role="group" aria-label="Teams">
+          <button data-v="0" aria-pressed="true">All teams</button>
+          <button data-v="2" aria-pressed="false">Men &amp; boys</button>
+          <button data-v="3" aria-pressed="false">Women &amp; girls</button>
+        </div>
+
+        <div class="row">
+          <div class="chips" id="cats" role="group" aria-label="Category">
+            <button data-v="4" aria-pressed="true">Senior</button>
+            <button data-v="3" aria-pressed="true">Youth</button>
+            <button data-v="2" aria-pressed="true">Kids</button>
+          </div>
+        </div>
+
+        <div class="row selects">
+          <label><span class="visually-hidden">Level</span>
+            <select id="level">
+              <option value="all">All leagues</option>
+              <option value="national">National series</option>
+              <option value="district">District series</option>
+            </select>
+          </label>
+          <label><span class="visually-hidden">Age group</span>
+            <select id="age"><option value="">Any age</option></select>
+          </label>
+        </div>
+
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="approx" checked> Approximate locations</label>
+          <label class="check"><input type="checkbox" id="finished"> Finished matches</label>
+          <button class="btn btn-link" id="reset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section class="list-section">
+        <div class="list-head">
+          <div class="segmented small" id="listMode" role="group" aria-label="Which matches to list">
+            <button data-v="view" aria-pressed="true">In map view</button>
+            <button data-v="all" aria-pressed="false">All</button>
+          </div>
+          <div class="segmented small" id="sortMode" role="group" aria-label="Sort matches">
+            <button data-v="time" aria-pressed="true">Soonest</button>
+            <button data-v="dist" aria-pressed="false" disabled title="Share your location to sort by distance">Nearest</button>
+          </div>
+        </div>
+        <ol class="matches" id="list" aria-live="polite"></ol>
+        <button class="btn btn-ghost more" id="more" hidden>Show more</button>
+      </section>
+
+      <footer class="foot">
+        <p>Fixtures from <a href="https://www.svenskfotboll.se/serier-cuper/matcher-idag/" target="_blank" rel="noopener">svenskfotboll.se</a>, refreshed daily at 11:00. <span id="updated"></span></p>
+        <p>Venue positions are matched to <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> by name and can be off. Not affiliated with SvFF.</p>
+      </footer>
+    </aside>
+
+    <main class="map-wrap">
+      <div id="map" aria-label="Map of matches"></div>
+      <div class="map-controls">
+        <button class="btn btn-primary" id="locate"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.94 3A8.99 8.99 0 0 0 13 3.06V1h-2v2.06A8.99 8.99 0 0 0 3.06 11H1v2h2.06A8.99 8.99 0 0 0 11 20.94V23h2v-2.06A8.99 8.99 0 0 0 20.94 13H23v-2h-2.06ZM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span>Near me</span></button>
+        <button class="btn btn-toggle" id="now" aria-pressed="false" title="Matches playing now or kicking off within the hour"><span class="dot live" aria-hidden="true"></span>On now</button>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="dot live"></i>Playing</span>
+        <span><i class="dot soon"></i>Within 3 h</span>
+        <span><i class="dot today"></i>Later today</span>
+        <span><i class="dot later"></i>Coming days</span>
+      </div>
+      <div class="toast" id="toast" role="status" hidden></div>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
