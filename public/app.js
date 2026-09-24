@@ -6,11 +6,15 @@
   const PAGE = 150;
   const SWEDEN = [[55.2, 10.9], [69.1, 24.2]];
   const RANK = { live: 0, soon: 1, today: 2, later: 3, past: 4 };
+  const DIVISIONS = { 4: 'Division 2', 5: 'Division 3', 6: 'Division 4', 7: 'Division 5', 8: 'Division 6', 9: 'Division 7', 10: 'Division 8' };
   const TIER_NAMES = {
-    1: 'Allsvenskan / Damallsvenskan', 2: 'Superettan / Elitettan', 3: 'Ettan / Division 1 (women)',
-    4: 'Division 2', 5: 'Division 3', 6: 'Division 4', 7: 'Division 5', 8: 'Division 6',
-    9: 'Division 7', 10: 'Division 8',
+    2: { 1: 'Allsvenskan', 2: 'Superettan', 3: 'Ettan', ...DIVISIONS },
+    3: { 1: 'Damallsvenskan', 2: 'Elitettan', 3: 'Division 1', ...DIVISIONS },
   };
+  const CUP = 10; // filter key for cup games; 0 = no tier
+  // Gender 4 is the federation's "mixed" (walking football, a few friendlies): shown in both modes.
+  const tierNames = (gender) => TIER_NAMES[gender === 3 ? 3 : 2];
+  const tierKey = (c) => (c.tier === 'C' ? CUP : c.tier ? Math.min(c.tier, 9) : 0);
   const logoUrl = (id) => `https://staticcdn.svenskfotboll.se/img/teamssm/${id}.png`;
   const matchUrl = (id) => `https://www.svenskfotboll.se/go-to/?fmid=${id}`;
 
@@ -30,16 +34,17 @@
   // Matches without a kickoff time sort after the timed ones on their day.
   const sortTime = (m) => (m.tbd ? m.t + 86_000 : m.t);
 
-  // Tier chips: 1-8, 9 = "9+", 0 = no tier (youth, kids, reserves, cups).
-  const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+  // Tier chips: 1-8, 9 = "9+", 10 = cup, 0 = no tier (youth and kids' leagues, reserves, friendlies).
+  const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, CUP, 0];
+  const STORE_KEY = 'fotbollskartan:filters:v2';
   const PERSISTED = ['gender', 'cats', 'tiers', 'level', 'age', 'approx', 'finished', 'listMode'];
   const DEFAULTS = {
-    day: null, gender: 0, cats: [4, 3, 2], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
+    day: null, gender: 2, cats: [4, 3, 2], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
     finished: false, now: false, listMode: 'view', sort: 'time',
   };
-  const state = { ...DEFAULTS, ...pick(store.get('fotbollskartan:filters', {}), PERSISTED) };
+  const state = { ...DEFAULTS, ...pick(store.get(STORE_KEY, {}), PERSISTED) };
   if (!Array.isArray(state.tiers)) state.tiers = ALL_TIERS;
-  if (!['all', 'national', 'district'].includes(state.level)) state.level = 'all'; // older saved tier options
+  if (state.gender !== 3) state.gender = 2;
 
   let data = null;
   let matches = [];
@@ -156,11 +161,11 @@
 
   function passes(m, now, { ignoreDay = false } = {}) {
     const c = m.comp;
-    if (state.gender && c.gender !== state.gender) return false;
+    if (c.gender !== state.gender && c.gender !== 4) return false;
     if ([2, 3, 4].includes(c.cat) && !state.cats.includes(c.cat)) return false;
     if (state.level === 'national' && !c.national) return false;
     if (state.level === 'district' && c.national) return false;
-    if (state.tiers.length < ALL_TIERS.length && !state.tiers.includes(c.tier ? Math.min(c.tier, 9) : 0)) return false;
+    if (state.tiers.length < ALL_TIERS.length && !state.tiers.includes(tierKey(c))) return false;
     if (state.age && c.age !== Number(state.age)) return false;
     if (!state.approx && m.venue.approx) return false;
     if (state.q && !state.q.split(/\s+/).every((w) => m.search.includes(w))) return false;
@@ -194,7 +199,8 @@
       for (const m of ms) {
         const b = bucket(m, now, today);
         if (RANK[b] < RANK[best]) best = b;
-        if (m.comp.tier && m.comp.tier < tier) tier = m.comp.tier;
+        const t = m.comp.tier === 'C' ? 50 : m.comp.tier || 99;
+        if (t < tier) tier = t;
       }
       const marker = L.marker([site.lat, site.lon], {
         icon: L.divIcon({
@@ -254,7 +260,8 @@
 
   function renderSummary(siteCount) {
     const n = visible.length;
-    let text = `${n.toLocaleString('en')} match${n === 1 ? '' : 'es'} at ${siteCount.toLocaleString('en')} venue${siteCount === 1 ? '' : 's'}`;
+    const who = state.gender === 3 ? 'women’s & girls’' : 'men’s & boys’';
+    let text = `${n.toLocaleString('en')} ${who} match${n === 1 ? '' : 'es'} at ${siteCount.toLocaleString('en')} venue${siteCount === 1 ? '' : 's'}`;
     if (state.now) text += ' playing now or within the hour';
     else if (state.day !== 'all') text += ` · ${dayName(state.day)}`;
     if (me) {
@@ -324,7 +331,7 @@
         <span class="time">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="teams">${esc(m.home)} <span>–</span> ${esc(m.away)}${tags}</span>
         <span class="dist">${d != null ? fmtKm(d) : ''}</span>
-        <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${tierBadge(m.comp.tier)}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
+        <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${tierBadge(m.comp)}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
       </li>`);
     }
     list.innerHTML = out.join('');
@@ -363,21 +370,34 @@
       const team = (name, logo) => `<span>${logo ? `<img src="${logoUrl(logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${esc(name)}</span>`;
       out.push(`<li class="m"><span class="t">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="tm">${team(m.home, m.hl)}${team(m.away, m.al)}</span>
-        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m.comp.tier)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
+        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m.comp)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
     }
     out.push('</ol></div>');
     return out.join('');
   }
 
   // ---------- helpers ----------
-  function tierBadge(tier) {
-    if (!tier) return '';
-    return `<span class="tier t${Math.min(tier, 9)}" title="Tier ${tier}: ${TIER_NAMES[tier] || 'lower division'}">T${tier}</span>`;
+  function tierBadge(comp) {
+    if (comp.tier === 'C') return '<span class="tier tc" title="Cup game">C</span>';
+    if (!comp.tier) return '';
+    const name = tierNames(comp.gender)[comp.tier] || 'lower division';
+    return `<span class="tier t${Math.min(comp.tier, 9)}" title="Tier ${comp.tier}: ${name}">T${comp.tier}</span>`;
   }
 
-  // Small corner badge on a marker: the highest senior tier being played there.
+  // Small corner badge on a marker: the highest senior tier played there, else C for a cup game.
   function cornerTier(tier) {
-    return tier <= 8 ? `<span class="corner tier t${tier}" title="Tier ${tier}">${tier}</span>` : '';
+    if (tier <= 8) return `<span class="corner tier t${tier}">${tier}</span>`;
+    return tier === 50 ? '<span class="corner tier tc">C</span>' : '';
+  }
+
+  // Tier chip and legend tooltips name only the selected gender's leagues.
+  function syncTierLabels() {
+    const names = tierNames(state.gender);
+    for (const b of $('#tiers').children) {
+      const v = Number(b.dataset.v);
+      if (v >= 1 && v <= 8) b.title = `Tier ${v} · ${names[v]}`;
+    }
+    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}. C = cup game.`;
   }
 
   function distKm(a, b) {
@@ -397,8 +417,10 @@
   }
 
   function buildAgeOptions() {
-    const ages = [...new Set(data.comps.map((c) => c[4]).filter((a) => a != null))].sort((a, b) => b - a);
-    $('#age').innerHTML = '<option value="">Any age</option>' + ages.map((a) => `<option value="${a}">${a} years (P/F${a})</option>`).join('');
+    const ages = [...new Set(data.comps.filter((c) => c[1] === state.gender).map((c) => c[4]).filter((a) => a != null))]
+      .sort((a, b) => b - a);
+    const letter = state.gender === 3 ? 'F' : 'P';
+    $('#age').innerHTML = '<option value="">Any age</option>' + ages.map((a) => `<option value="${a}">${letter}${a} · ${a} years</option>`).join('');
     if (state.age && !ages.includes(Number(state.age))) state.age = '';
   }
 
@@ -406,6 +428,7 @@
     for (const b of $('#gender').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === state.gender));
     for (const b of $('#cats').children) b.setAttribute('aria-pressed', String(state.cats.includes(Number(b.dataset.v))));
     for (const b of $('#tiers').children) b.setAttribute('aria-pressed', String(state.tiers.includes(Number(b.dataset.v))));
+    syncTierLabels();
     for (const b of $('#listMode').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.listMode));
     for (const b of $('#sortMode').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.sort));
     $('#level').value = state.level;
@@ -418,7 +441,6 @@
 
   function updateFilterBadge() {
     let n = 0;
-    if (state.gender) n++;
     if (state.cats.length < 3) n++;
     if (state.tiers.length < ALL_TIERS.length) n++;
     if (state.level !== 'all') n++;
@@ -433,7 +455,7 @@
 
   function changed(opts) {
     if (!data) return;
-    store.set('fotbollskartan:filters', pick(state, PERSISTED));
+    store.set(STORE_KEY, pick(state, PERSISTED));
     syncControls();
     render(opts);
   }
@@ -509,6 +531,7 @@
     const b = e.target.closest('button');
     if (!b) return;
     state.gender = Number(b.dataset.v);
+    buildAgeOptions();
     changed();
   });
   $('#cats').addEventListener('click', (e) => {
@@ -542,7 +565,7 @@
     }, 250);
   });
   $('#reset').addEventListener('click', () => {
-    Object.assign(state, { ...DEFAULTS, day: state.day, sort: me ? 'dist' : 'time' });
+    Object.assign(state, { ...DEFAULTS, day: state.day, gender: state.gender, sort: me ? 'dist' : 'time' });
     changed();
   });
   $('#now').addEventListener('click', () => {
@@ -555,7 +578,7 @@
     const b = e.target.closest('button');
     if (!b) return;
     state.listMode = b.dataset.v;
-    store.set('fotbollskartan:filters', pick(state, PERSISTED));
+    store.set(STORE_KEY, pick(state, PERSISTED));
     syncControls();
     shown = PAGE;
     renderList();

@@ -211,16 +211,19 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .tier.t7 { background: #8fb6ea; color: #0d1f38; }
 .tier.t8 { background: #c6daf4; color: #0d1f38; }
 .tier.t9 { background: var(--panel-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.tier.tc { background: #7a2e8e; color: #fff; }
 .site-icon, .cluster-icon { position: relative; }
 
 .tier-filter { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 8px; }
 .tier-label { font-size: 13.5px; color: var(--muted); }
-.tier-chips { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)) auto; gap: 4px; }
+.tier-chips { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)) auto; gap: 4px; }
 .tier-chips .tier {
   margin: 0; border: 0; cursor: pointer;
-  min-width: 0; height: 28px; padding: 0 8px; border-radius: 6px; font-size: 12.5px;
+  min-width: 0; height: 28px; padding: 0 2px; border-radius: 6px; font-size: 12.5px;
 }
-.tier-chips .tier.other { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); font-weight: 700; }
+.tier-chips .tier.other { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); font-weight: 700; padding: 0 8px; }
+.segmented.gender button { padding: 8px; font-size: 14px; }
+.segmented.gender button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .tier-chips .tier[aria-pressed="false"] {
   background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line);
   text-decoration: line-through; opacity: .75;

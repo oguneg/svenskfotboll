@@ -70,11 +70,13 @@ export function ageOf(name, ageCategoryId, seasonYear) {
 
 // Level in the senior league pyramid, 1 = Allsvenskan/Damallsvenskan. Men and women share the
 // numbering: Ettan and women's Division 1 are both tier 3, and Division N is tier N + 2.
-// Reserve, development, cup, qualifier and small-sided competitions have no tier.
+// Cups and district championships (DM) of any age are "C". Reserve, development, qualifier
+// and small-sided competitions have no tier.
 export function tierOf(name, ageCategoryId) {
-  if (ageCategoryId !== 4) return null;
   const n = fold(name);
-  if (/reserv|utveckling|\butv\b|\bu2[13]\b|junior|motion|\bvet(eran)?\b|\bdm\b|cup|kval|traningsmatch|nations league|landskamp/.test(n)) return null;
+  if (/cup|\bdm\b/.test(n)) return 'C';
+  if (ageCategoryId !== 4) return null;
+  if (/reserv|utveckling|\butv\b|\bu2[13]\b|junior|motion|\bvet(eran)?\b|kval|traningsmatch|nations league|landskamp/.test(n)) return null;
   if (/\b(herr|herrar|dam|damer) b\b(?!-)/.test(n)) return null; // B-team leagues ("Herr B Skåne"), not "B-slutspel"
   if (/\b\d+ ?(m|mot) ?\d+\b|damsjuan|futsal|\b[pf]\d/.test(n)) return null; // small-sided / youth
   if (/allsvenskan/.test(n)) return 1; // also matches Damallsvenskan

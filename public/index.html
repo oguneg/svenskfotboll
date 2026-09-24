@@ -31,9 +31,8 @@
 
         <div class="chips scroll" id="days" role="group" aria-label="Day"></div>
 
-        <div class="segmented" id="gender" role="group" aria-label="Teams">
-          <button data-v="0" aria-pressed="true">All teams</button>
-          <button data-v="2" aria-pressed="false">Men &amp; boys</button>
+        <div class="segmented gender" id="gender" role="group" aria-label="Men's or women's football">
+          <button data-v="2" aria-pressed="true">Men &amp; boys</button>
           <button data-v="3" aria-pressed="false">Women &amp; girls</button>
         </div>
 
@@ -57,7 +56,8 @@
             <button class="tier t7" data-v="7" aria-pressed="true" title="Tier 7 · Division 5">7</button>
             <button class="tier t8" data-v="8" aria-pressed="true" title="Tier 8 · Division 6">8</button>
             <button class="tier t9" data-v="9" aria-pressed="true" title="Tier 9+ · Division 7 and below">9+</button>
-            <button class="tier other" data-v="0" aria-pressed="true" title="No tier: youth, kids, reserves, cups and friendlies">Other</button>
+            <button class="tier tc" data-v="10" aria-pressed="true" title="Cup games: Svenska Cupen, district championships (DM) and other cups">C</button>
+            <button class="tier other" data-v="0" aria-pressed="true" title="No tier: youth and kids' leagues, reserves, friendlies">Other</button>
           </div>
           <span class="tier-quick"><button class="btn-link" id="tiersAll" type="button">All</button>·<button class="btn-link" id="tiersNone" type="button">None</button></span>
         </div>
@@ -116,9 +116,9 @@
           <span><i class="dot today"></i>Later today</span>
           <span><i class="dot later"></i>Coming days</span>
         </div>
-        <div class="legend-row tiers" title="Senior league tier: 1 = Allsvenskan/Damallsvenskan … 8 = Division 6">
+        <div class="legend-row tiers" id="tierLegend">
           <span class="legend-label">Top tier played</span>
-          <i class="tier t1">1</i><i class="tier t2">2</i><i class="tier t3">3</i><i class="tier t4">4</i><i class="tier t5">5</i><i class="tier t6">6</i><i class="tier t7">7</i><i class="tier t8">8</i>
+          <i class="tier t1">1</i><i class="tier t2">2</i><i class="tier t3">3</i><i class="tier t4">4</i><i class="tier t5">5</i><i class="tier t6">6</i><i class="tier t7">7</i><i class="tier t8">8</i><i class="tier tc">C</i>
         </div>
       </div>
       <div class="toast" id="toast" role="status" hidden></div>
