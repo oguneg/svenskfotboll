@@ -51,6 +51,17 @@
               <option value="all">All leagues</option>
               <option value="national">National series</option>
               <option value="district">District series</option>
+              <optgroup label="Senior tier">
+                <option value="t1">Tier 1 · Allsvenskan / Damallsvenskan</option>
+                <option value="t2">Tier 2 · Superettan / Elitettan</option>
+                <option value="t3">Tier 3 · Ettan / Div 1 (women)</option>
+                <option value="t4">Tier 4 · Division 2</option>
+                <option value="t5">Tier 5 · Division 3</option>
+                <option value="t6">Tier 6 · Division 4</option>
+                <option value="t7">Tier 7 · Division 5</option>
+                <option value="t8">Tier 8 · Division 6</option>
+                <option value="t9">Tier 9+ · Division 7 and below</option>
+              </optgroup>
             </select>
           </label>
           <label><span class="visually-hidden">Age group</span>
@@ -93,10 +104,16 @@
         <button class="btn btn-toggle" id="now" aria-pressed="false" title="Matches playing now or kicking off within the hour"><span class="dot live" aria-hidden="true"></span>On now</button>
       </div>
       <div class="legend" aria-hidden="true">
-        <span><i class="dot live"></i>Playing</span>
-        <span><i class="dot soon"></i>Within 3 h</span>
-        <span><i class="dot today"></i>Later today</span>
-        <span><i class="dot later"></i>Coming days</span>
+        <div class="legend-row">
+          <span><i class="dot live"></i>Playing</span>
+          <span><i class="dot soon"></i>Within 3 h</span>
+          <span><i class="dot today"></i>Later today</span>
+          <span><i class="dot later"></i>Coming days</span>
+        </div>
+        <div class="legend-row tiers" title="Senior league tier: 1 = Allsvenskan/Damallsvenskan … 8 = Division 6">
+          <span class="legend-label">Top tier played</span>
+          <i class="tier t1">1</i><i class="tier t2">2</i><i class="tier t3">3</i><i class="tier t4">4</i><i class="tier t5">5</i><i class="tier t6">6</i><i class="tier t7">7</i><i class="tier t8">8</i>
+        </div>
       </div>
       <div class="toast" id="toast" role="status" hidden></div>
     </main>

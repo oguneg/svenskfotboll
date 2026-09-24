@@ -68,6 +68,23 @@ export function ageOf(name, ageCategoryId, seasonYear) {
   return null;
 }
 
+// Level in the senior league pyramid, 1 = Allsvenskan/Damallsvenskan. Men and women share the
+// numbering: Ettan and women's Division 1 are both tier 3, and Division N is tier N + 2.
+// Reserve, development, cup, qualifier and small-sided competitions have no tier.
+export function tierOf(name, ageCategoryId) {
+  if (ageCategoryId !== 4) return null;
+  const n = fold(name);
+  if (/reserv|utveckling|\butv\b|\bu2[13]\b|junior|motion|\bvet(eran)?\b|\bdm\b|cup|kval|traningsmatch|nations league|landskamp/.test(n)) return null;
+  if (/\b(herr|herrar|dam|damer) b\b(?!-)/.test(n)) return null; // B-team leagues ("Herr B Skåne"), not "B-slutspel"
+  if (/\b\d+ ?(m|mot) ?\d+\b|damsjuan|futsal|\b[pf]\d/.test(n)) return null; // small-sided / youth
+  if (/allsvenskan/.test(n)) return 1; // also matches Damallsvenskan
+  if (/superettan|elitettan/.test(n)) return 2;
+  if (/\bettan\b/.test(n)) return 3;
+  // "Div 4", "Div.4", "Division 5A", "Herr div 5"; Stockholm writes "Herrar 4 Norra" / "Damer 3 A".
+  const m = n.match(/\bdiv(?:ision)?\s*\.?\s*(\d)(?!\d)/) || n.match(/^(?:herrar|damer|herr|dam)\s+(\d)(?!\d)/);
+  return m && +m[1] >= 1 ? +m[1] + 2 : null;
+}
+
 const logoId = (url) => Number(url.match(/\/(\d+)\.png/)?.[1]) || 0;
 
 async function main() {
@@ -106,7 +123,10 @@ async function main() {
     if (!comps.has(c.id)) {
       comps.set(c.id, {
         i: comps.size,
-        row: [c.name, c.genderId, c.ageCategoryId, c.associationId === 1 ? 1 : 0, ageOf(c.name, c.ageCategoryId, seasonYear), c.associationId],
+        row: [
+          c.name, c.genderId, c.ageCategoryId, c.associationId === 1 ? 1 : 0,
+          ageOf(c.name, c.ageCategoryId, seasonYear), c.associationId, tierOf(c.name, c.ageCategoryId),
+        ],
       });
     }
     const r = await resolver.resolve({ district: district(g), location: g.location, homeTeam: g.home });

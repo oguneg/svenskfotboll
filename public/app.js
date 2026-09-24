@@ -6,6 +6,11 @@
   const PAGE = 150;
   const SWEDEN = [[55.2, 10.9], [69.1, 24.2]];
   const RANK = { live: 0, soon: 1, today: 2, later: 3, past: 4 };
+  const TIER_NAMES = {
+    1: 'Allsvenskan / Damallsvenskan', 2: 'Superettan / Elitettan', 3: 'Ettan / Division 1 (women)',
+    4: 'Division 2', 5: 'Division 3', 6: 'Division 4', 7: 'Division 5', 8: 'Division 6',
+    9: 'Division 7', 10: 'Division 8',
+  };
   const logoUrl = (id) => `https://staticcdn.svenskfotboll.se/img/teamssm/${id}.png`;
   const matchUrl = (id) => `https://www.svenskfotboll.se/go-to/?fmid=${id}`;
 
@@ -61,12 +66,14 @@
     iconCreateFunction(cluster) {
       let count = 0;
       let best = 'past';
+      let tier = 99;
       for (const m of cluster.getAllChildMarkers()) {
         count += m.options.count;
         if (RANK[m.options.bucket] < RANK[best]) best = m.options.bucket;
+        if (m.options.tier < tier) tier = m.options.tier;
       }
       return L.divIcon({
-        html: `<div class="cluster-icon ${best}">${count > 999 ? Math.round(count / 100) / 10 + 'k' : count}</div>`,
+        html: `<div class="cluster-icon ${best}">${count > 999 ? Math.round(count / 100) / 10 + 'k' : count}${cornerTier(tier)}</div>`,
         className: 'cluster',
         iconSize: [40, 40],
       });
@@ -82,7 +89,7 @@
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
 
-    const comps = data.comps.map(([name, gender, cat, national, age]) => ({ name, gender, cat, national: !!national, age }));
+    const comps = data.comps.map(([name, gender, cat, national, age, , tier]) => ({ name, gender, cat, national: !!national, age, tier }));
     const siteByKey = new Map();
     const venues = data.venues.map(([name, lat, lon, approx]) => {
       const v = { name, lat, lon, approx: !!approx, site: null };
@@ -149,6 +156,10 @@
     if ([2, 3, 4].includes(c.cat) && !state.cats.includes(c.cat)) return false;
     if (state.level === 'national' && !c.national) return false;
     if (state.level === 'district' && c.national) return false;
+    if (state.level[0] === 't') {
+      const t = Number(state.level.slice(1));
+      if (t === 9 ? !(c.tier >= 9) : c.tier !== t) return false;
+    }
     if (state.age && c.age !== Number(state.age)) return false;
     if (!state.approx && m.venue.approx) return false;
     if (state.q && !state.q.split(/\s+/).every((w) => m.search.includes(w))) return false;
@@ -178,18 +189,21 @@
     markerBySite = new Map();
     for (const [site, ms] of bySite) {
       let best = 'past';
+      let tier = 99;
       for (const m of ms) {
         const b = bucket(m, now, today);
         if (RANK[b] < RANK[best]) best = b;
+        if (m.comp.tier && m.comp.tier < tier) tier = m.comp.tier;
       }
       const marker = L.marker([site.lat, site.lon], {
         icon: L.divIcon({
-          html: `<div class="site-icon ${best}${site.approx ? ' approx' : ''}">${ms.length}</div>`,
+          html: `<div class="site-icon ${best}${site.approx ? ' approx' : ''}">${ms.length}${cornerTier(tier)}</div>`,
           className: 'site',
           iconSize: [30, 30],
         }),
         count: ms.length,
         bucket: best,
+        tier,
         title: site.title,
         keyboard: true,
       });
@@ -309,7 +323,7 @@
         <span class="time">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="teams">${esc(m.home)} <span>–</span> ${esc(m.away)}${tags}</span>
         <span class="dist">${d != null ? fmtKm(d) : ''}</span>
-        <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
+        <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${tierBadge(m.comp.tier)}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
       </li>`);
     }
     list.innerHTML = out.join('');
@@ -348,13 +362,23 @@
       const team = (name, logo) => `<span>${logo ? `<img src="${logoUrl(logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${esc(name)}</span>`;
       out.push(`<li class="m"><span class="t">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="tm">${team(m.home, m.hl)}${team(m.away, m.al)}</span>
-        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
+        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m.comp.tier)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
     }
     out.push('</ol></div>');
     return out.join('');
   }
 
   // ---------- helpers ----------
+  function tierBadge(tier) {
+    if (!tier) return '';
+    return `<span class="tier t${Math.min(tier, 9)}" title="Tier ${tier}: ${TIER_NAMES[tier] || 'lower division'}">T${tier}</span>`;
+  }
+
+  // Small corner badge on a marker: the highest senior tier being played there.
+  function cornerTier(tier) {
+    return tier <= 8 ? `<span class="corner tier t${tier}" title="Tier ${tier}">${tier}</span>` : '';
+  }
+
   function distKm(a, b) {
     const r = Math.PI / 180;
     const h = Math.sin(((b[0] - a[0]) * r) / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(((b[1] - a[1]) * r) / 2) ** 2;
