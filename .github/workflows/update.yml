@@ -83,6 +83,12 @@ jobs:
           git commit -m "Update venue cache $(TZ=Europe/Stockholm date +%F)"
           git pull --rebase -X theirs && git push
 
+      # Pages lets browsers cache files for 10 minutes; versioned URLs stop a fresh index.html
+      # from being paired with a stale app.js right after a deploy.
+      - name: Stamp asset versions
+        if: steps.gate.outputs.run == 'true'
+        run: sed -i -E "s/(app\.js|style\.css)\"/\1?v=${GITHUB_SHA::8}\"/g" public/index.html
+
       - uses: actions/configure-pages@v5
         if: steps.gate.outputs.run == 'true'
 
