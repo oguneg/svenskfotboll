@@ -1,6 +1,6 @@
 # Fotbollskartan
 
-Every football match in Sweden for the coming week on one map, from Allsvenskan down to a Tuesday-night P12 game on the local turf. Switch between men's and women's football (men by default), then filter by senior/youth/kids, league tier (toggle chips 1–9+, C for cups), national or district series and age group, then hit **Near me** to see what's being played around you.
+Every football match in Sweden for the coming week on one map, from Allsvenskan down to a Tuesday-night P12 game on the local turf. Switch between men's and women's football (men by default), then filter by senior/youth/kids/vets & rec, league tier (1–9+, C for cups, R for reserves), national or district series and age group, then hit **Near me** to see what's being played around you.
 
 Senior leagues carry a colour-coded tier badge. Men and women share the numbering:
 
@@ -11,7 +11,9 @@ Senior leagues carry a colour-coded tier badge. Men and women share the numberin
 | 3 | Ettan | Division 1 |
 | 4–8 | Division 2–6 | Division 2–6 |
 
-Cups and district championships (Svenska Cupen, DM, …) of any age are tier **C**. Reserve, development and 7-a-side competitions have no tier and fall under the **Other** chip, together with youth and kids' league games. Map markers show the highest tier being played at each venue.
+Cups and district championships (Svenska Cupen, DM, …) of any age are tier **C**. Reserve, B-team and development leagues are tier **R**. Friendlies, qualifiers and national-team games fall under **Other**, along with youth, kids' and veterans' games. Map markers show the highest tier being played at each venue.
+
+Competitions are sorted by name, not only by the federation's age label: veterans (Vet, Old boys), Motion, walking football and 7-a-side adult leagues go under **Vets & rec**, and "senior" competitions that are really youth (F15/16, Junior P18, U21) go under **Youth**.
 
 ## How it works
 

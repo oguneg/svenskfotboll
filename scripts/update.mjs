@@ -68,17 +68,30 @@ export function ageOf(name, ageCategoryId, seasonYear) {
   return null;
 }
 
+// Age categories: 2 kids, 3 youth, 4 senior, 5 veterans & recreational. The federation labels
+// some competitions "senior" that aren't (F15/16, Junior P18, walking football), so the name
+// decides where they belong.
+export function categoryOf(name, apiCategory) {
+  if (apiCategory !== 4) return apiCategory;
+  const n = fold(name);
+  if (/\b[pf] ?\d{1,2}\b|junior|\bu ?(1\d|2[01])\b|pojk|flick/.test(n)) return 3;
+  if (/\bvet(eran(er)?)?\b|old ?(boys|girls)|motion|gafotboll|med malvakt/.test(n)) return 5;
+  if (/\b\d+ ?(m|mot) ?\d+\b|sjuan|\d-manna/.test(n)) return 5; // 7-a-side adult leagues
+  return 4;
+}
+
 // Level in the senior league pyramid, 1 = Allsvenskan/Damallsvenskan. Men and women share the
 // numbering: Ettan and women's Division 1 are both tier 3, and Division N is tier N + 2.
-// Cups and district championships (DM) of any age are "C". Reserve, development, qualifier
-// and small-sided competitions have no tier.
-export function tierOf(name, ageCategoryId) {
+// "C" = cups and district championships (any age), "R" = reserve, B-team and development
+// leagues. Friendlies, qualifiers and national-team games have no tier.
+export function tierOf(name, category) {
   const n = fold(name);
   if (/cup|\bdm\b/.test(n)) return 'C';
-  if (ageCategoryId !== 4) return null;
-  if (/reserv|utveckling|\butv\b|\bu2[13]\b|junior|motion|\bvet(eran)?\b|kval|traningsmatch|nations league|landskamp/.test(n)) return null;
-  if (/\b(herr|herrar|dam|damer) b\b(?!-)/.test(n)) return null; // B-team leagues ("Herr B Skåne"), not "B-slutspel"
-  if (/\b\d+ ?(m|mot) ?\d+\b|damsjuan|futsal|\b[pf]\d/.test(n)) return null; // small-sided / youth
+  if (category !== 4) return null;
+  // "Herr B Skåne" is a B-team league; "B-slutspel" is a playoff. SSH/SSD (Stockholm) and
+  // Nivå (Halland) are the districts' reserve-team systems.
+  if (/reserv|utveckling|\butv\b|\b(herr|herrar|dam|damer) b\b(?!-)|^ss[hd]\b|^niva\b/.test(n)) return 'R';
+  if (/kval|traningsmatch|nations league|landskamp|futsal/.test(n)) return null;
   if (/allsvenskan/.test(n)) return 1; // also matches Damallsvenskan
   if (/superettan|elitettan/.test(n)) return 2;
   if (/\bettan\b/.test(n)) return 3;
@@ -88,6 +101,10 @@ export function tierOf(name, ageCategoryId) {
 }
 
 const logoId = (url) => Number(url.match(/\/(\d+)\.png/)?.[1]) || 0;
+
+// Sweden's national teams ("Sverige", "Sverige U21", ...) and the SvFF competitions they play in.
+const SWEDEN_TEAM = /^(sverige|sweden)\b/i;
+const NATIONAL_COMP = /landskamp|nations league|em-kval|vm-kval|em-playoff|vm-playoff|\d-nations|elite round|em-slutspel|vm-slutspel|olympi/i;
 
 async function main() {
   const today = stockholmDate();
@@ -122,16 +139,23 @@ async function main() {
   const seasonYear = Number(today.slice(0, 4));
   for (const g of games.sort((a, b) => a.date.localeCompare(b.date))) {
     const c = g.competition;
+    const sweden = SWEDEN_TEAM.test(g.home) || SWEDEN_TEAM.test(g.away);
+    // Other countries' games in Sweden's qualifying group are played abroad: not ours to map.
+    if (c.associationId === 1 && NATIONAL_COMP.test(c.name) && !sweden) continue;
     if (!comps.has(c.id)) {
+      const category = categoryOf(c.name, c.ageCategoryId);
       comps.set(c.id, {
         i: comps.size,
         row: [
-          c.name, c.genderId, c.ageCategoryId, c.associationId === 1 ? 1 : 0,
-          ageOf(c.name, c.ageCategoryId, seasonYear), c.associationId, tierOf(c.name, c.ageCategoryId),
+          c.name, c.genderId, category, c.associationId === 1 ? 1 : 0,
+          category === 2 || category === 3 ? ageOf(c.name, category, seasonYear) : null,
+          c.associationId, tierOf(c.name, category),
         ],
       });
     }
-    const r = await resolver.resolve({ district: district(g), location: g.location, homeTeam: g.home });
+    let r = await resolver.resolve({ district: district(g), location: g.location, homeTeam: g.home });
+    // National-team games are often abroad; a town-level guess from "Sverige" would be nonsense.
+    if (sweden && r.p === 'approx') r = { p: null };
     // Same name + same spot = one venue row; same name in two places stays two rows.
     const vKey = `${g.location}|${r.lat}|${r.lon}`;
     if (!venues.has(vKey)) {
@@ -143,7 +167,7 @@ async function main() {
     const tbd = /T00:00(:00)?$/.test(g.date) ? 1 : 0;
     matches.push([
       g.id, stockholmToEpoch(g.date), g.status, tbd, g.home, g.away,
-      comps.get(c.id).i, venues.get(vKey).i, logoId(g.homeLogo), logoId(g.awayLogo),
+      comps.get(c.id).i, venues.get(vKey).i, logoId(g.homeLogo), logoId(g.awayLogo), sweden ? 1 : 0,
     ]);
   }
 

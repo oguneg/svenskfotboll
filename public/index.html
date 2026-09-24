@@ -41,12 +41,14 @@
             <button data-v="4" aria-pressed="true">Senior</button>
             <button data-v="3" aria-pressed="true">Youth</button>
             <button data-v="2" aria-pressed="true">Kids</button>
+            <button data-v="5" aria-pressed="true" title="Veterans (Vet, Old boys), recreational Motion leagues, walking football and 7-a-side adult leagues">Vets &amp; rec</button>
           </div>
         </div>
 
         <div class="tier-filter">
           <span class="tier-label" id="tierLabel">Tier <small>· tap to pick, tap more to add</small></span>
           <div class="tier-chips" id="tiers" role="group" aria-labelledby="tierLabel">
+            <div class="tier-row">
             <button class="tier t1" data-v="1" aria-pressed="true" title="Tier 1 · Allsvenskan / Damallsvenskan">1</button>
             <button class="tier t2" data-v="2" aria-pressed="true" title="Tier 2 · Superettan / Elitettan">2</button>
             <button class="tier t3" data-v="3" aria-pressed="true" title="Tier 3 · Ettan / Division 1 (women)">3</button>
@@ -56,8 +58,13 @@
             <button class="tier t7" data-v="7" aria-pressed="true" title="Tier 7 · Division 5">7</button>
             <button class="tier t8" data-v="8" aria-pressed="true" title="Tier 8 · Division 6">8</button>
             <button class="tier t9" data-v="9" aria-pressed="true" title="Tier 9+ · Division 7 and below">9+</button>
-            <button class="tier tc" data-v="10" aria-pressed="true" title="Cup games: Svenska Cupen, district championships (DM) and other cups">C</button>
-            <button class="tier other" data-v="0" aria-pressed="true" title="No tier: youth and kids' leagues, reserves, friendlies">Other</button>
+            </div>
+            <div class="tier-row special">
+              <button class="tier-pill" data-v="12" aria-pressed="true" title="Sweden's national teams, senior and youth"><i class="tier tn">SWE</i>National team</button>
+              <button class="tier-pill" data-v="10" aria-pressed="true" title="Svenska Cupen, district championships (DM) and other cups"><i class="tier tc">C</i>Cups</button>
+              <button class="tier-pill" data-v="11" aria-pressed="true" title="Reserve, B-team and development leagues"><i class="tier tr">R</i>Reserves</button>
+              <button class="tier-pill" data-v="0" aria-pressed="true" title="No tier: youth, kids' and veterans' leagues, friendlies, qualifiers">Other</button>
+            </div>
           </div>
           <span class="tier-quick"><button class="btn-link" id="tiersAll" type="button">Show all</button></span>
         </div>
@@ -118,7 +125,7 @@
         </div>
         <div class="legend-row tiers" id="tierLegend">
           <span class="legend-label">Top tier played</span>
-          <i class="tier t1">1</i><i class="tier t2">2</i><i class="tier t3">3</i><i class="tier t4">4</i><i class="tier t5">5</i><i class="tier t6">6</i><i class="tier t7">7</i><i class="tier t8">8</i><i class="tier tc">C</i>
+          <i class="tier t1">1</i><i class="tier t2">2</i><i class="tier t3">3</i><i class="tier t4">4</i><i class="tier t5">5</i><i class="tier t6">6</i><i class="tier t7">7</i><i class="tier t8">8</i><i class="tier tc">C</i><i class="tier tn">SWE</i>
         </div>
       </div>
       <div class="toast" id="toast" role="status" hidden></div>

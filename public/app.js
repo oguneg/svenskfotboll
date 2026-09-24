@@ -11,10 +11,15 @@
     2: { 1: 'Allsvenskan', 2: 'Superettan', 3: 'Ettan', ...DIVISIONS },
     3: { 1: 'Damallsvenskan', 2: 'Elitettan', 3: 'Division 1', ...DIVISIONS },
   };
-  const CUP = 10; // filter key for cup games; 0 = no tier
+  const CUP = 10; // filter keys: 10 cup, 11 reserves, 12 national team, 0 no tier
+  const RESERVES = 11;
+  const NATIONAL = 12;
   // Gender 4 is the federation's "mixed" (walking football, a few friendlies): shown in both modes.
   const tierNames = (gender) => TIER_NAMES[gender === 3 ? 3 : 2];
-  const tierKey = (c) => (c.tier === 'C' ? CUP : c.tier ? Math.min(c.tier, 9) : 0);
+  const compKey = (c) => (c.tier === 'C' ? CUP : c.tier === 'R' ? RESERVES : c.tier ? Math.min(c.tier, 9) : 0);
+  const tierKey = (m) => (m.nt ? NATIONAL : compKey(m.comp));
+  // Marker ranking: national team first, then tiers 1-8, then cups.
+  const markerRank = (m) => (m.nt ? 0 : m.comp.tier === 'C' ? 50 : typeof m.comp.tier === 'number' ? m.comp.tier : 99);
   const logoUrl = (id) => `https://staticcdn.svenskfotboll.se/img/teamssm/${id}.png`;
   const matchUrl = (id) => `https://www.svenskfotboll.se/go-to/?fmid=${id}`;
 
@@ -34,12 +39,12 @@
   // Matches without a kickoff time sort after the timed ones on their day.
   const sortTime = (m) => (m.tbd ? m.t + 86_000 : m.t);
 
-  // Tier chips: 1-8, 9 = "9+", 10 = cup, 0 = no tier (youth and kids' leagues, reserves, friendlies).
-  const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, CUP, 0];
-  const STORE_KEY = 'fotbollskartan:filters:v2';
+  // Tier chips: 1-8, 9 = "9+", cup, reserves, 0 = no tier (youth, kids, veterans, friendlies).
+  const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, NATIONAL, CUP, RESERVES, 0];
+  const STORE_KEY = 'fotbollskartan:filters:v4';
   const PERSISTED = ['gender', 'cats', 'tiers', 'level', 'age', 'approx', 'finished', 'listMode'];
   const DEFAULTS = {
-    day: null, gender: 2, cats: [4, 3, 2], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
+    day: null, gender: 2, cats: [4, 3, 2, 5], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
     finished: false, now: false, listMode: 'view', sort: 'time',
   };
   const state = { ...DEFAULTS, ...pick(store.get(STORE_KEY, {}), PERSISTED) };
@@ -82,7 +87,7 @@
         if (m.options.tier < tier) tier = m.options.tier;
       }
       return L.divIcon({
-        html: `<div class="cluster-icon ${best}">${count > 999 ? Math.round(count / 100) / 10 + 'k' : count}${cornerTier(tier)}</div>`,
+        html: `<div class="cluster-icon ${best}${tier === 0 ? ' national' : ''}">${count > 999 ? Math.round(count / 100) / 10 + 'k' : count}${cornerTier(tier)}</div>`,
         className: 'cluster',
         iconSize: [40, 40],
       });
@@ -111,11 +116,11 @@
       }
       return v;
     });
-    matches = data.matches.map(([id, t, status, tbd, home, away, ci, vi, hl, al]) => {
+    matches = data.matches.map(([id, t, status, tbd, home, away, ci, vi, hl, al, nt]) => {
       const venue = venues[vi];
       const comp = comps[ci];
       const m = {
-        id, t, status, tbd: !!tbd, home, away, comp, venue, hl, al,
+        id, t, status, tbd: !!tbd, home, away, comp, venue, hl, al, nt: !!nt,
         day: ymd(new Date(t * 1000)),
         search: `${home} ${away} ${comp.name} ${venue.name}`.toLowerCase(),
       };
@@ -162,10 +167,10 @@
   function passes(m, now, { ignoreDay = false } = {}) {
     const c = m.comp;
     if (c.gender !== state.gender && c.gender !== 4) return false;
-    if ([2, 3, 4].includes(c.cat) && !state.cats.includes(c.cat)) return false;
+    if (!state.cats.includes(c.cat)) return false;
     if (state.level === 'national' && !c.national) return false;
     if (state.level === 'district' && c.national) return false;
-    if (state.tiers.length < ALL_TIERS.length && !state.tiers.includes(tierKey(c))) return false;
+    if (state.tiers.length < ALL_TIERS.length && !state.tiers.includes(tierKey(m))) return false;
     if (state.age && c.age !== Number(state.age)) return false;
     if (!state.approx && m.venue.approx) return false;
     if (state.q && !state.q.split(/\s+/).every((w) => m.search.includes(w))) return false;
@@ -199,15 +204,16 @@
       for (const m of ms) {
         const b = bucket(m, now, today);
         if (RANK[b] < RANK[best]) best = b;
-        const t = m.comp.tier === 'C' ? 50 : m.comp.tier || 99;
-        if (t < tier) tier = t;
+        tier = Math.min(tier, markerRank(m));
       }
+      const national = tier === 0;
       const marker = L.marker([site.lat, site.lon], {
         icon: L.divIcon({
-          html: `<div class="site-icon ${best}${site.approx ? ' approx' : ''}">${ms.length}${cornerTier(tier)}</div>`,
+          html: `<div class="site-icon ${best}${site.approx ? ' approx' : ''}${national ? ' national' : ''}">${ms.length}${cornerTier(tier)}</div>`,
           className: 'site',
-          iconSize: [30, 30],
+          iconSize: national ? [38, 38] : [30, 30],
         }),
+        zIndexOffset: national ? 1000 : 0,
         count: ms.length,
         bucket: best,
         tier,
@@ -327,11 +333,11 @@
       }
       const b = bucket(m, now, today);
       const tags = statusTags(m, b);
-      out.push(`<li class="match${m.venue.site ? '' : ' nolocation'}" tabindex="0" data-id="${m.id}">
+      out.push(`<li class="match${m.venue.site ? '' : ' nolocation'}${m.nt ? ' national' : ''}" tabindex="0" data-id="${m.id}">
         <span class="time">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="teams">${esc(m.home)} <span>–</span> ${esc(m.away)}${tags}</span>
         <span class="dist">${d != null ? fmtKm(d) : ''}</span>
-        <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${tierBadge(m.comp)}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
+        <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${tierBadge(m)}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
       </li>`);
     }
     list.innerHTML = out.join('');
@@ -368,17 +374,20 @@
       }
       const b = bucket(m, now, today);
       const team = (name, logo) => `<span>${logo ? `<img src="${logoUrl(logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${esc(name)}</span>`;
-      out.push(`<li class="m"><span class="t">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
+      out.push(`<li class="m${m.nt ? ' national' : ''}"><span class="t">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="tm">${team(m.home, m.hl)}${team(m.away, m.al)}</span>
-        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m.comp)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
+        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
     }
     out.push('</ol></div>');
     return out.join('');
   }
 
   // ---------- helpers ----------
-  function tierBadge(comp) {
+  function tierBadge(m) {
+    if (m.nt) return '<span class="tier tn" title="Sweden national team">SWE</span>';
+    const comp = m.comp;
     if (comp.tier === 'C') return '<span class="tier tc" title="Cup game">C</span>';
+    if (comp.tier === 'R') return '<span class="tier tr" title="Reserve / B-team / development league">R</span>';
     if (!comp.tier) return '';
     const name = tierNames(comp.gender)[comp.tier] || 'lower division';
     return `<span class="tier t${Math.min(comp.tier, 9)}" title="Tier ${comp.tier}: ${name}">T${comp.tier}</span>`;
@@ -386,6 +395,7 @@
 
   // Small corner badge on a marker: the highest senior tier played there, else C for a cup game.
   function cornerTier(tier) {
+    if (tier === 0) return '<span class="corner tier tn">SWE</span>';
     if (tier <= 8) return `<span class="corner tier t${tier}">${tier}</span>`;
     return tier === 50 ? '<span class="corner tier tc">C</span>' : '';
   }
@@ -393,11 +403,11 @@
   // Tier chip and legend tooltips name only the selected gender's leagues.
   function syncTierLabels() {
     const names = tierNames(state.gender);
-    for (const b of $('#tiers').children) {
+    for (const b of $('#tiers').querySelectorAll('button')) {
       const v = Number(b.dataset.v);
       if (v >= 1 && v <= 8) b.title = `Tier ${v} · ${names[v]}`;
     }
-    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}. C = cup game.`;
+    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}. C = cup game, SWE = Sweden national team.`;
   }
 
   function distKm(a, b) {
@@ -427,7 +437,7 @@
   function syncControls() {
     for (const b of $('#gender').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === state.gender));
     for (const b of $('#cats').children) b.setAttribute('aria-pressed', String(state.cats.includes(Number(b.dataset.v))));
-    for (const b of $('#tiers').children) b.setAttribute('aria-pressed', String(state.tiers.includes(Number(b.dataset.v))));
+    for (const b of $('#tiers').querySelectorAll('button')) b.setAttribute('aria-pressed', String(state.tiers.includes(Number(b.dataset.v))));
     syncTierLabels();
     for (const b of $('#listMode').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.listMode));
     for (const b of $('#sortMode').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.sort));
@@ -441,7 +451,7 @@
 
   function updateFilterBadge() {
     let n = 0;
-    if (state.cats.length < 3) n++;
+    if (state.cats.length < DEFAULTS.cats.length) n++;
     if (state.tiers.length < ALL_TIERS.length) n++;
     if (state.level !== 'all') n++;
     if (state.age) n++;
