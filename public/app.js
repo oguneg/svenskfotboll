@@ -534,24 +534,26 @@
     buildAgeOptions();
     changed();
   });
+  // Chip groups start with everything shown. The first click picks just that chip, later clicks
+  // add or remove chips, and removing the last one shows everything again.
+  function pickChip(selected, all, v) {
+    if (selected.length === all.length) return [v];
+    const next = selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v];
+    return next.length ? next : all;
+  }
   $('#cats').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
-    const v = Number(b.dataset.v);
-    const next = state.cats.includes(v) ? state.cats.filter((c) => c !== v) : [...state.cats, v];
-    if (!next.length) return; // keep at least one category selected
-    state.cats = next;
+    state.cats = pickChip(state.cats, DEFAULTS.cats, Number(b.dataset.v));
     changed();
   });
   $('#tiers').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
-    const v = Number(b.dataset.v);
-    state.tiers = state.tiers.includes(v) ? state.tiers.filter((t) => t !== v) : [...state.tiers, v];
+    state.tiers = pickChip(state.tiers, ALL_TIERS, Number(b.dataset.v));
     changed();
   });
   $('#tiersAll').addEventListener('click', () => { state.tiers = ALL_TIERS; changed(); });
-  $('#tiersNone').addEventListener('click', () => { state.tiers = []; changed(); });
   $('#level').addEventListener('change', (e) => { state.level = e.target.value; changed(); });
   $('#age').addEventListener('change', (e) => { state.age = e.target.value; changed(); });
   $('#approx').addEventListener('change', (e) => { state.approx = e.target.checked; changed(); });

@@ -331,3 +331,4 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
   .toast { top: 52px; }
   .leaflet-control-zoom { display: none; }
 }
+.tier-label small { font-size: 12px; opacity: .8; }
