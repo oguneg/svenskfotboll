@@ -45,23 +45,29 @@
           </div>
         </div>
 
+        <div class="tier-filter">
+          <span class="tier-label" id="tierLabel">Tier</span>
+          <div class="tier-chips" id="tiers" role="group" aria-labelledby="tierLabel">
+            <button class="tier t1" data-v="1" aria-pressed="true" title="Tier 1 · Allsvenskan / Damallsvenskan">1</button>
+            <button class="tier t2" data-v="2" aria-pressed="true" title="Tier 2 · Superettan / Elitettan">2</button>
+            <button class="tier t3" data-v="3" aria-pressed="true" title="Tier 3 · Ettan / Division 1 (women)">3</button>
+            <button class="tier t4" data-v="4" aria-pressed="true" title="Tier 4 · Division 2">4</button>
+            <button class="tier t5" data-v="5" aria-pressed="true" title="Tier 5 · Division 3">5</button>
+            <button class="tier t6" data-v="6" aria-pressed="true" title="Tier 6 · Division 4">6</button>
+            <button class="tier t7" data-v="7" aria-pressed="true" title="Tier 7 · Division 5">7</button>
+            <button class="tier t8" data-v="8" aria-pressed="true" title="Tier 8 · Division 6">8</button>
+            <button class="tier t9" data-v="9" aria-pressed="true" title="Tier 9+ · Division 7 and below">9+</button>
+            <button class="tier other" data-v="0" aria-pressed="true" title="No tier: youth, kids, reserves, cups and friendlies">Other</button>
+          </div>
+          <span class="tier-quick"><button class="btn-link" id="tiersAll" type="button">All</button>·<button class="btn-link" id="tiersNone" type="button">None</button></span>
+        </div>
+
         <div class="row selects">
           <label><span class="visually-hidden">Level</span>
             <select id="level">
               <option value="all">All leagues</option>
               <option value="national">National series</option>
               <option value="district">District series</option>
-              <optgroup label="Senior tier">
-                <option value="t1">Tier 1 · Allsvenskan / Damallsvenskan</option>
-                <option value="t2">Tier 2 · Superettan / Elitettan</option>
-                <option value="t3">Tier 3 · Ettan / Div 1 (women)</option>
-                <option value="t4">Tier 4 · Division 2</option>
-                <option value="t5">Tier 5 · Division 3</option>
-                <option value="t6">Tier 6 · Division 4</option>
-                <option value="t7">Tier 7 · Division 5</option>
-                <option value="t8">Tier 8 · Division 6</option>
-                <option value="t9">Tier 9+ · Division 7 and below</option>
-              </optgroup>
             </select>
           </label>
           <label><span class="visually-hidden">Age group</span>

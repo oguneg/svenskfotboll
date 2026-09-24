@@ -30,12 +30,16 @@
   // Matches without a kickoff time sort after the timed ones on their day.
   const sortTime = (m) => (m.tbd ? m.t + 86_000 : m.t);
 
-  const PERSISTED = ['gender', 'cats', 'level', 'age', 'approx', 'finished', 'listMode'];
+  // Tier chips: 1-8, 9 = "9+", 0 = no tier (youth, kids, reserves, cups).
+  const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+  const PERSISTED = ['gender', 'cats', 'tiers', 'level', 'age', 'approx', 'finished', 'listMode'];
   const DEFAULTS = {
-    day: null, gender: 0, cats: [4, 3, 2], level: 'all', age: '', q: '', approx: true, finished: false,
-    now: false, listMode: 'view', sort: 'time',
+    day: null, gender: 0, cats: [4, 3, 2], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
+    finished: false, now: false, listMode: 'view', sort: 'time',
   };
   const state = { ...DEFAULTS, ...pick(store.get('fotbollskartan:filters', {}), PERSISTED) };
+  if (!Array.isArray(state.tiers)) state.tiers = ALL_TIERS;
+  if (!['all', 'national', 'district'].includes(state.level)) state.level = 'all'; // older saved tier options
 
   let data = null;
   let matches = [];
@@ -156,10 +160,7 @@
     if ([2, 3, 4].includes(c.cat) && !state.cats.includes(c.cat)) return false;
     if (state.level === 'national' && !c.national) return false;
     if (state.level === 'district' && c.national) return false;
-    if (state.level[0] === 't') {
-      const t = Number(state.level.slice(1));
-      if (t === 9 ? !(c.tier >= 9) : c.tier !== t) return false;
-    }
+    if (state.tiers.length < ALL_TIERS.length && !state.tiers.includes(c.tier ? Math.min(c.tier, 9) : 0)) return false;
     if (state.age && c.age !== Number(state.age)) return false;
     if (!state.approx && m.venue.approx) return false;
     if (state.q && !state.q.split(/\s+/).every((w) => m.search.includes(w))) return false;
@@ -404,6 +405,7 @@
   function syncControls() {
     for (const b of $('#gender').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === state.gender));
     for (const b of $('#cats').children) b.setAttribute('aria-pressed', String(state.cats.includes(Number(b.dataset.v))));
+    for (const b of $('#tiers').children) b.setAttribute('aria-pressed', String(state.tiers.includes(Number(b.dataset.v))));
     for (const b of $('#listMode').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.listMode));
     for (const b of $('#sortMode').children) b.setAttribute('aria-pressed', String(b.dataset.v === state.sort));
     $('#level').value = state.level;
@@ -418,6 +420,7 @@
     let n = 0;
     if (state.gender) n++;
     if (state.cats.length < 3) n++;
+    if (state.tiers.length < ALL_TIERS.length) n++;
     if (state.level !== 'all') n++;
     if (state.age) n++;
     if (state.q) n++;
@@ -517,6 +520,15 @@
     state.cats = next;
     changed();
   });
+  $('#tiers').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const v = Number(b.dataset.v);
+    state.tiers = state.tiers.includes(v) ? state.tiers.filter((t) => t !== v) : [...state.tiers, v];
+    changed();
+  });
+  $('#tiersAll').addEventListener('click', () => { state.tiers = ALL_TIERS; changed(); });
+  $('#tiersNone').addEventListener('click', () => { state.tiers = []; changed(); });
   $('#level').addEventListener('change', (e) => { state.level = e.target.value; changed(); });
   $('#age').addEventListener('change', (e) => { state.age = e.target.value; changed(); });
   $('#approx').addEventListener('change', (e) => { state.approx = e.target.checked; changed(); });
