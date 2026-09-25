@@ -691,7 +691,7 @@
     if (!m?.venue.site) return;
     const marker = markerBySite.get(m.venue.site);
     if (!marker) return;
-    setSheet(false);
+    setSheet('peek');
     clusters.zoomToShowLayer(marker, () => marker.openPopup());
   }
   $('#list').addEventListener('click', (e) => {
@@ -710,14 +710,76 @@
     listTimer = setTimeout(() => { shown = PAGE; renderList(); }, 120);
   });
 
-  // mobile bottom sheet
+  // ---------- phone bottom sheet: drag, flick or tap the header; snaps to peek, half, full ----------
   const panel = $('#panel');
-  function setSheet(open) {
-    panel.classList.toggle('open', open);
-    $('#sheetHandle').setAttribute('aria-expanded', String(open));
+  const brand = document.querySelector('.brand');
+  const phone = window.matchMedia('(max-width: 820px)');
+  const SNAPS = ['peek', 'half', 'full'];
+  let sheetState = 'peek';
+  let drag = null;
+  let ignoreClickUntil = 0;
+
+  // Distance the sheet is pushed down for each snap point.
+  function snapY(name) {
+    const h = panel.offsetHeight;
+    if (name === 'full') return 0;
+    if (name === 'half') return Math.max(0, h - window.innerHeight * 0.5);
+    return Math.max(0, h - (brand.offsetHeight + 8));
   }
-  $('#sheetHandle').addEventListener('click', () => setSheet(!panel.classList.contains('open')));
-  $('#summary').addEventListener('click', () => setSheet(!panel.classList.contains('open')));
+  const setSheetY = (y) => panel.style.setProperty('--sheet-y', `${Math.round(y)}px`);
+  function setSheet(name) {
+    const collapsing = name === 'peek' && sheetState !== 'peek';
+    sheetState = name;
+    setSheetY(snapY(name));
+    panel.classList.toggle('open', name !== 'peek');
+    $('#sheetHandle').setAttribute('aria-expanded', String(name !== 'peek'));
+    if (collapsing && phone.matches) panel.scrollTop = 0;
+  }
+
+  brand.addEventListener('pointerdown', (e) => {
+    if (!phone.matches || e.button > 0 || e.target.closest('a, input, select, button:not(.sheet-handle)')) return;
+    drag = { id: e.pointerId, y0: e.clientY, from: snapY(sheetState), lastY: e.clientY, lastT: e.timeStamp, v: 0, moved: false };
+    try {
+      brand.setPointerCapture(e.pointerId); // keep receiving moves when the finger leaves the header
+    } catch { /* pointer already gone */ }
+  });
+  brand.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dy = e.clientY - drag.y0;
+    if (!drag.moved && Math.abs(dy) < 6) return; // still a tap
+    if (!drag.moved) {
+      drag.moved = true;
+      panel.classList.add('dragging');
+    }
+    drag.v = (e.clientY - drag.lastY) / Math.max(1, e.timeStamp - drag.lastT); // px/ms, + = down
+    drag.lastY = e.clientY;
+    drag.lastT = e.timeStamp;
+    setSheetY(Math.min(snapY('peek'), Math.max(0, drag.from + dy)));
+  });
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.id) return;
+    panel.classList.remove('dragging');
+    ignoreClickUntil = e.timeStamp + 400; // the click that follows is part of this gesture
+    if (!drag.moved) {
+      setSheet(sheetState === 'peek' ? 'half' : 'peek'); // tap
+    } else {
+      const y = parseFloat(panel.style.getPropertyValue('--sheet-y')) || 0;
+      const snaps = SNAPS.map((n) => [n, snapY(n)]);
+      let target;
+      if (drag.v < -0.4) target = snaps.filter(([, s]) => s < y - 1).sort((a, b) => b[1] - a[1])[0]; // flick up
+      else if (drag.v > 0.4) target = snaps.filter(([, s]) => s > y + 1).sort((a, b) => a[1] - b[1])[0]; // flick down
+      target ||= snaps.sort((a, b) => Math.abs(a[1] - y) - Math.abs(b[1] - y))[0];
+      setSheet(target[0]);
+    }
+    drag = null;
+  }
+  brand.addEventListener('pointerup', endDrag);
+  brand.addEventListener('pointercancel', endDrag);
+  // Keyboard: the handle is a real button.
+  $('#sheetHandle').addEventListener('click', (e) => {
+    if (e.timeStamp < ignoreClickUntil) return;
+    setSheet(sheetState === 'peek' ? 'half' : 'peek');
+  });
   // The detailed filters fold away; the choice is remembered.
   const FOLD_KEY = 'fotbollskartan:filtersOpen';
   function setFold(open) {
@@ -730,12 +792,13 @@
   $('#foldToggle').addEventListener('click', () => setFold($('#moreFilters').hidden));
   // Phone header shortcut: open the sheet with the filters unfolded.
   $('#filtersToggle').addEventListener('click', () => {
-    setSheet(true);
+    setSheet('full');
     setFold(true);
   });
   function sizePeek() {
     const h = document.querySelector('.brand').offsetHeight + 8;
     document.documentElement.style.setProperty('--peek', `${h}px`);
+    if (!drag) setSheet(sheetState); // the header's height or the screen changed
   }
   window.addEventListener('resize', sizePeek);
   sizePeek();

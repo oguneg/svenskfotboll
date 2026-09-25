@@ -429,19 +429,25 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
   .map-wrap { position: absolute; inset: 0; }
   .panel {
     position: absolute; left: 0; right: 0; bottom: 0;
-    width: auto; height: 88dvh;
+    width: auto; height: 92dvh;
     border-right: 0; border-radius: 16px 16px 0 0;
     box-shadow: 0 -4px 24px rgb(0 0 0 / .18);
-    transform: translateY(calc(88dvh - var(--peek, 150px)));
-    transition: transform .28s ease;
+    /* --sheet-y is set by app.js: peek, half or full, or wherever a drag has it */
+    transform: translateY(var(--sheet-y, calc(92dvh - var(--peek, 150px))));
+    transition: transform .3s cubic-bezier(.2, .8, .2, 1);
     padding-bottom: env(safe-area-inset-bottom);
   }
-  .panel.open { transform: translateY(0); }
+  .panel.dragging { transition: none; }
+  /* The header is the drag handle and stays put while the list scrolls under it. */
+  .brand {
+    position: sticky; top: 0; z-index: 5; background: var(--panel);
+    border-radius: 16px 16px 0 0; touch-action: none; user-select: none; cursor: grab;
+  }
   .sheet-handle {
-    display: block; width: 100%; height: 22px; margin: -10px 0 2px; border: 0; background: none; cursor: pointer; position: relative;
+    display: block; width: 100%; height: 26px; margin: -14px 0 0; border: 0; background: none; cursor: grab; position: relative;
   }
   .sheet-handle::after {
-    content: ""; position: absolute; left: 50%; top: 8px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--line);
+    content: ""; position: absolute; left: 50%; top: 10px; width: 44px; height: 5px; margin-left: -22px; border-radius: 3px; background: var(--muted); opacity: .45;
   }
   #filtersToggle { display: inline-flex; }
   .segmented.periods button { font-size: 12.5px; }
@@ -451,10 +457,10 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
   .matches { overflow: visible; flex: none; }
   .map-wrap { z-index: 0; }
   .leaflet-bottom { bottom: var(--peek, 150px); }
-  .map-controls { top: auto; bottom: calc(var(--peek, 150px) + 26px); right: 12px; }
+  .map-controls { top: 76px; right: 12px; }
   .legend { top: 12px; bottom: auto; left: 12px; right: 12px; justify-items: center; font-size: 11.5px; }
   .legend-row { gap: 10px; }
-  .toast { top: 52px; }
+  .toast { top: 124px; }
   .leaflet-control-zoom { display: none; }
   /* Phones: one row for page + men/women, search underneath, so popups have room. */
   .club-bar {
