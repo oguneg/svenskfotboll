@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Club map · Fotbollskartan</title>
+  <meta name="description" content="Every Swedish football club on one map, crest size by league tier.">
+  <meta name="theme-color" content="#0b6b3a">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="club-app">
+    <div id="map" aria-label="Map of football clubs"></div>
+
+    <header class="club-bar">
+      <nav class="pages" aria-label="Pages">
+        <a href="./">Matches</a>
+        <a href="clubs.html" aria-current="page">Clubs</a>
+      </nav>
+      <h1><span aria-hidden="true">⚽</span> Fotbollskartan</h1>
+      <p class="tagline" id="clubSummary">Loading clubs…</p>
+      <div class="segmented gender" id="gender" role="group" aria-label="Men's or women's football">
+        <button data-v="2" aria-pressed="true">Men</button>
+        <button data-v="3" aria-pressed="false">Women</button>
+      </div>
+      <div class="club-search">
+        <label class="search">
+          <span class="visually-hidden">Find a club</span>
+          <input id="clubSearch" type="search" placeholder="Find a club" autocomplete="off" aria-controls="clubResults">
+        </label>
+        <ol class="club-results" id="clubResults" hidden></ol>
+      </div>
+    </header>
+
+    <div class="legend club-legend" aria-hidden="true">
+      <div class="legend-row"><span class="legend-label">Bigger crest = higher league</span></div>
+      <div class="legend-row tiers">
+        <i class="tier t1">1</i><i class="tier t2">2</i><i class="tier t3">3</i><i class="tier t4">4</i><i class="tier t5">5</i><i class="tier t6">6</i><i class="tier t7">7</i><i class="tier t8">8</i><i class="tier t9">9+</i>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="clubs.js"></script>
+</body>
+</html>

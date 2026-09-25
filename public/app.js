@@ -158,9 +158,15 @@
     const upcoming = [...rangeSet];
     state.day = upcoming.find((d) => matches.some((m) => m.day === d && !m.tbd && passes(m, now, { ignoreDay: true }))) || 'all';
     $('#updated').textContent = `Last update ${fmtStamp.format(new Date(data.generated))}.`;
+    // ?q=Hammarby (from the club map): search for it across the whole week and show where it plays.
+    const q0 = new URLSearchParams(location.search).get('q');
+    if (q0) {
+      state.q = q0.trim().toLowerCase();
+      state.day = 'all';
+    }
     buildAgeOptions();
     syncControls();
-    render();
+    render({ fit: !!q0 });
     autoLocate();
   }
 

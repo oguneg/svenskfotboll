@@ -15,6 +15,12 @@ Svenska Cupen is tier **C**. Reserve, B-team and development leagues are tier **
 
 Competitions are sorted by name, not only by the federation's age label: veterans (Vet, Old boys), Motion, walking football and 7-a-side adult leagues go under **Vets & rec**, and "senior" competitions that are really youth (F15/16, Junior P18, U21) go under **Youth**.
 
+## Club map
+
+`clubs.html` lays every club's crest over Sweden at its home ground, sized by the club's best senior league tier (men's or women's, switchable). The Sweden view shows the top two tiers; lower tiers appear as you zoom in. Crests never overlap a more important one: when two would collide, the higher tier keeps the spot, and top-two-tier clubs are nudged aside rather than hidden.
+
+The club registry (`cache/clubs.json`) is built from the daily fixtures and remembers each club's league teams and home grounds for a season. A club keeps its tier and ground when its first team has no fixture in the current fortnight, and moves to its stadium once its best team has played a home game there.
+
 ## How it works
 
 ```

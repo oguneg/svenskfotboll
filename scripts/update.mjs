@@ -12,6 +12,7 @@ import { loadGazetteer } from './lib/osm.mjs';
 import { VenueResolver } from './lib/geocode.mjs';
 import { fold } from './lib/names.mjs';
 import { syncCrests } from './lib/crests.mjs';
+import { clubRows, updateClubs } from './lib/clubs.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'data', 'matches.json');
@@ -20,6 +21,8 @@ const VENUE_CACHE = join(ROOT, 'cache', 'venues.json');
 const OVERRIDES = join(ROOT, 'cache', 'venue-overrides.json');
 const CRESTS = join(ROOT, 'public', 'crests');
 const CRESTS_MISSING = join(ROOT, 'cache', 'crests-missing.json');
+const CLUBS_OUT = join(ROOT, 'public', 'data', 'clubs.json');
+const CLUB_CACHE = join(ROOT, 'cache', 'clubs.json');
 
 // Today plus 13 days: this week and next. District and youth games are rarely scheduled further
 // ahead, and 25 associations × 14 days = 350 small requests a day is as far as we want to go.
@@ -99,7 +102,7 @@ export function tierOf(name, category) {
   // "Herr B Skåne" is a B-team league; "B-slutspel" is a playoff. SSH/SSD (Stockholm) and
   // Nivå (Halland) are the districts' reserve-team systems.
   if (/reserv|utveckling|\butv\b|\b(herr|herrar|dam|damer) b\b(?!-)|^ss[hd]\b|^niva\b/.test(n)) return 'R';
-  if (/kval|traningsmatch|nations league|landskamp|futsal/.test(n)) return null;
+  if (/kval|traningsmatch|^tr\.|nations league|landskamp|futsal/.test(n)) return null; // "Tr." = friendlies
   if (/allsvenskan/.test(n)) return 1; // also matches Damallsvenskan
   if (/superettan|elitettan/.test(n)) return 2;
   if (/\bettan\b/.test(n)) return 3;
@@ -180,9 +183,12 @@ async function main() {
   }
 
   log('Syncing club crests');
-  const crestIds = new Set(matches.flatMap((m) => [m[8], m[9]]));
+  // Crests for this fortnight's teams and for every club the club map remembers.
+  const clubs = readJson(CLUB_CACHE, {});
+  const crestIds = new Set([...matches.flatMap((m) => [m[8], m[9]]), ...Object.keys(clubs).map(Number)]);
+  let available = new Set();
   try {
-    const available = await syncCrests(crestIds, CRESTS, CRESTS_MISSING, { today, log });
+    available = await syncCrests(crestIds, CRESTS, CRESTS_MISSING, { today, log });
     for (const m of matches) {
       if (!available.has(m[8])) m[8] = 0;
       if (!available.has(m[9])) m[9] = 0;
@@ -206,12 +212,23 @@ async function main() {
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, JSON.stringify(out));
 
-  // One venue per line, sorted, so the committed cache diffs cleanly.
-  const lines = Object.entries(cache)
+  log('Updating club registry');
+  updateClubs(clubs, { matches, comps: out.comps, venues: venueRows, today });
+  const clubList = clubRows(clubs, (id) => available.has(id));
+  writeFileSync(CLUBS_OUT, JSON.stringify({ generated: out.generated, clubs: clubList }));
+  log(`  ${Object.keys(clubs).length} clubs known, ${clubList.length} on the club map`);
+
+  writeSorted(VENUE_CACHE, cache);
+  writeSorted(CLUB_CACHE, clubs);
+  log(`Wrote ${OUT}`);
+}
+
+// One entry per line, sorted, so the committed caches diff cleanly.
+function writeSorted(file, obj) {
+  const lines = Object.entries(obj)
     .sort(([a], [b]) => a.localeCompare(b, 'sv'))
     .map(([k, v]) => `${JSON.stringify(k)}:${JSON.stringify(v)}`);
-  writeFileSync(VENUE_CACHE, `{\n${lines.join(',\n')}\n}\n`);
-  log(`Wrote ${OUT}`);
+  writeFileSync(file, `{\n${lines.join(',\n')}\n}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
