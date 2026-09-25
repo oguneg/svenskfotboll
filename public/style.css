@@ -217,25 +217,23 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 
 /* Crests: 100×56 images with the badge centred, so crop to the middle. */
 .crest { width: 18px; height: 18px; object-fit: cover; vertical-align: -4px; margin-right: 5px; }
-.site-icon.crest {
-  width: 38px; height: 38px; padding: 0; overflow: visible;
-  background: #fff; border: 3px solid var(--later);
+
+/* Fixture label beside big-game markers, shown from city zoom (see syncLabels in app.js). */
+.venue-label {
+  position: absolute; left: calc(100% + 7px); top: 50%; transform: translateY(-50%);
+  display: none; align-items: center; gap: 5px;
+  max-width: 280px; padding: 3px 6px 3px 5px; border-radius: 7px;
+  background: var(--panel); color: var(--text); box-shadow: 0 1px 4px rgb(0 0 0 / .28);
+  font: 600 12px/1.25 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  white-space: nowrap; letter-spacing: 0;
 }
-.site-icon.crest img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.site-icon.crest.live { background: #fff; border-color: var(--live); }
-.site-icon.crest.soon { border-color: var(--soon); }
-.site-icon.crest.today { border-color: var(--today); }
-.site-icon.crest.past { border-color: var(--past); }
-.site-icon.crest.past img { opacity: .6; }
-.site-icon.crest.approx { border-style: dashed; }
-.site-icon.crest.national { border-color: #fecc02; background: #fff; }
-.site-icon.crest .count {
-  position: absolute; bottom: -6px; right: -8px;
-  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
-  display: grid; place-items: center;
-  background: var(--text); color: var(--panel); font-size: 10.5px; font-weight: 800;
-  box-shadow: 0 0 0 1.5px #fff;
-}
+#map.show-labels .venue-label { display: flex; }
+.venue-label .fx { overflow: hidden; text-overflow: ellipsis; }
+.venue-label .when { color: var(--muted); font-weight: 500; }
+.venue-label .when.live { color: var(--live); font-weight: 700; }
+.venue-label .crest { width: 16px; height: 16px; margin: 0; flex: none; }
+.venue-label .tier { margin: 0; flex: none; }
+.venue-label.national { box-shadow: inset 3px 0 0 #fecc02, 0 1px 4px rgb(0 0 0 / .28); padding-left: 8px; }
 /* National-team venues: Swedish blue with a gold ring, drawn above everything else. */
 .site-icon.national {
   width: 38px; height: 38px; font-size: 14px;

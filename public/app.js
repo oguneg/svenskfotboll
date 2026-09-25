@@ -112,6 +112,12 @@
 
   let meLayer = null;
 
+  // Fixture labels only make sense once venues are spread out (city zoom and closer).
+  const mapEl = document.getElementById('map');
+  const syncLabels = () => mapEl.classList.toggle('show-labels', map.getZoom() >= 11);
+  map.on('zoomend', syncLabels);
+  syncLabels();
+
   // ---------- data ----------
   async function load() {
     const res = await fetch('data/matches.json', { cache: 'no-cache' });
@@ -227,18 +233,17 @@
         }
       }
       const national = tier === 0;
-      // Senior league, national-team and Svenska Cupen venues show the home club's crest; the
-      // ring keeps the timing colour and the match count moves to a small bubble.
-      const crest = tier <= 10 || tier === 50 ? top.hl : 0;
-      const classes = `site-icon ${best}${site.approx ? ' approx' : ''}${national ? ' national' : ''}${crest ? ' crest' : ''}`;
-      const inner = crest ? `<img src="${crestUrl(crest)}" alt="">${ms.length > 1 ? `<b class="count">${ms.length}</b>` : ''}` : ms.length;
+      // Big games (tiers 1-4, national team, Svenska Cupen) get a fixture label next to the
+      // bubble; CSS only shows labels from city zoom up.
+      const bigGame = tier <= 4 || tier === 50;
+      const label = bigGame ? venueLabel(top, now, today) : '';
       const marker = L.marker([site.lat, site.lon], {
         icon: L.divIcon({
-          html: `<div class="${classes}">${inner}${cornerTier(tier)}</div>`,
+          html: `<div class="site-icon ${best}${site.approx ? ' approx' : ''}${national ? ' national' : ''}">${ms.length}${cornerTier(tier)}${label}</div>`,
           className: 'site',
-          iconSize: crest || national ? [38, 38] : [30, 30],
+          iconSize: national ? [38, 38] : [30, 30],
         }),
-        zIndexOffset: national ? 1000 : 0,
+        zIndexOffset: national ? 1000 : bigGame ? 500 : 0,
         count: ms.length,
         bucket: best,
         tier,
@@ -408,6 +413,16 @@
   }
 
   // ---------- helpers ----------
+  const fmtWeekday = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short' });
+
+  // "Hammarby – Sirius  15:00  T1" beside a big game's marker.
+  function venueLabel(m, now, today) {
+    const live = bucket(m, now, today) === 'live';
+    const day = m.day === today ? '' : `${fmtWeekday.format(new Date(m.t * 1000))} `;
+    const when = live ? 'playing' : m.tbd ? `${day}TBD`.trim() : `${day}${fmtTime.format(new Date(m.t * 1000))}`;
+    return `<span class="venue-label${m.nt ? ' national' : ''}">${crestImg(m.hl)}<span class="fx">${esc(m.home)} – ${esc(m.away)}</span><span class="when${live ? ' live' : ''}">${when}</span>${tierBadge(m)}</span>`;
+  }
+
   function tierBadge(m) {
     if (m.nt) return '<span class="tier tn" title="Sweden national team">SWE</span>';
     const comp = m.comp;
