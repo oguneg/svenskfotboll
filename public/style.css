@@ -101,21 +101,9 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .check input { accent-color: var(--accent); width: 16px; height: 16px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-/* Day picker: "All" on the left, the fortnight as two rows of seven. */
-.days { display: grid; grid-template-columns: 46px repeat(7, minmax(0, 1fr)); gap: 3px; }
-.days button {
-  display: grid; justify-items: center; align-content: center; gap: 0;
-  min-width: 0; padding: 3px 0; border: 1px solid var(--line); border-radius: 8px;
-  background: var(--panel); cursor: pointer; line-height: 1.15;
-}
-.days button .wd { font-size: 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--muted); }
-.days button b { font-size: 14px; font-variant-numeric: tabular-nums; }
-.days button small { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.days button.empty { opacity: .5; }
-.days .day-all { grid-row: span 2; font-weight: 700; font-size: 13px; }
-.days button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.days button[aria-pressed="true"] .wd, .days button[aria-pressed="true"] small { color: inherit; opacity: .85; }
-.days button:hover { border-color: var(--accent); }
+/* When: Today · Tomorrow · Weekend · 7 days · All */
+.segmented.periods button { padding: 7px 2px; font-size: 13px; min-width: 0; }
+.segmented.periods button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .chips button {
   flex: none;
   border: 1px solid var(--line);
@@ -456,6 +444,7 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
     content: ""; position: absolute; left: 50%; top: 8px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--line);
   }
   #filtersToggle { display: inline-flex; }
+  .segmented.periods button { font-size: 12.5px; }
   /* On phones the whole sheet scrolls as one page: filters, then the list. */
   .panel { overscroll-behavior: contain; }
   .list-section { flex: none; min-height: 0; }

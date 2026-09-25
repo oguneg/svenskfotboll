@@ -33,7 +33,13 @@
           <input id="q" type="search" placeholder="Search team, league or venue" autocomplete="off">
         </label>
 
-        <div class="days" id="days" role="group" aria-label="Day"></div>
+        <div class="segmented periods" id="days" role="group" aria-label="When">
+          <button data-v="today" aria-pressed="true">Today</button>
+          <button data-v="tomorrow" aria-pressed="false">Tomorrow</button>
+          <button data-v="weekend" aria-pressed="false">Weekend</button>
+          <button data-v="week" aria-pressed="false">7 days</button>
+          <button data-v="all" aria-pressed="false">All</button>
+        </div>
 
         <div class="segmented gender" id="gender" role="group" aria-label="Men's or women's football">
           <button data-v="2" aria-pressed="true">Men &amp; boys</button>

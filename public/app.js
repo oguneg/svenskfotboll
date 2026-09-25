@@ -61,6 +61,8 @@
   let visible = []; // filtered matches, recomputed on every render
   let markerBySite = new Map();
   let upcomingDays = new Set(); // today and the rest of the fortnight in the data
+  let periodDays = new Set(); // the days the selected period (state.day) covers
+  const PERIOD_TEXT = { today: 'today', tomorrow: 'tomorrow', weekend: 'this weekend', week: 'next 7 days', all: 'next two weeks' };
 
   function pick(obj, keys) {
     return Object.fromEntries(keys.filter((k) => k in obj).map((k) => [k, obj[k]]));
@@ -154,9 +156,11 @@
 
     // Start on the first day that still has matches to go (late evening that's tomorrow).
     const now = nowSec();
+    // Start on today, or tomorrow once today's matches are over.
     syncDays();
-    const upcoming = [...upcomingDays];
-    state.day = upcoming.find((d) => matches.some((m) => m.day === d && !m.tbd && passes(m, now, { ignoreDay: true }))) || 'all';
+    const [today, tomorrow] = upcomingDays;
+    const hasGames = (d) => matches.some((m) => m.day === d && !m.tbd && passes(m, now, { ignoreDay: true }));
+    state.day = hasGames(today) ? 'today' : hasGames(tomorrow) ? 'tomorrow' : 'week';
     $('#updated').textContent = `Last update ${fmtStamp.format(new Date(data.generated))}.`;
     // ?q=Hammarby (from the club map): search for it across the whole week and show where it plays.
     const q0 = new URLSearchParams(location.search).get('q');
@@ -206,7 +210,7 @@
       return !m.tbd && m.status !== 3 && m.status !== 2 && m.status !== 4 && m.t - 3600 <= now && m.t + PLAYING_SECS >= now;
     }
     if (!state.finished && isFinished(m, now)) return false;
-    if (!ignoreDay && (state.day === 'all' ? !upcomingDays.has(m.day) : m.day !== state.day)) return false;
+    if (!ignoreDay && !periodDays.has(m.day)) return false;
     return true;
   }
 
@@ -278,32 +282,40 @@
     if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.1), { maxZoom: 13 });
   }
 
+  const weekday = (d) => new Date(`${d}T12:00:00Z`).getUTCDay(); // 0 Sunday, 6 Saturday
+
+  // Days covered by a period. "weekend" is the coming Saturday and Sunday (or what's left of
+  // the current one).
+  function daysFor(period) {
+    const up = [...upcomingDays];
+    if (period === 'today') return up.slice(0, 1);
+    if (period === 'tomorrow') return up.slice(1, 2);
+    if (period === 'week') return up.slice(0, 7);
+    if (period === 'weekend') {
+      const i = up.findIndex((d) => weekday(d) === 6 || weekday(d) === 0);
+      if (i < 0) return [];
+      return weekday(up[i]) === 0 ? [up[i]] : up.slice(i, i + 2);
+    }
+    return up;
+  }
+
   function syncDays() {
     const today = ymd(new Date());
     upcomingDays = new Set(data.days.filter((d) => d >= today));
+    periodDays = new Set(daysFor(state.day));
   }
 
-  // Mini calendar: "All" plus the fortnight as two rows of seven, starting today.
+  // Period buttons: mark the selected one and put its match count in the tooltip.
   function renderDays(now) {
     const counts = new Map();
-    let total = 0;
     for (const m of matches) {
-      if (!upcomingDays.has(m.day) || !passes(m, now, { ignoreDay: true })) continue;
-      counts.set(m.day, (counts.get(m.day) || 0) + 1);
-      total++;
+      if (upcomingDays.has(m.day) && passes(m, now, { ignoreDay: true })) counts.set(m.day, (counts.get(m.day) || 0) + 1);
     }
-    const today = ymd(new Date());
-    const short = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k` : String(n));
-    const html = [`<button class="day-all" data-v="all" aria-pressed="${state.day === 'all' && !state.now}">All<small>${short(total)}</small></button>`];
-    for (const d of upcomingDays) {
-      const [y, mo, da] = d.split('-').map(Number);
-      const date = new Date(Date.UTC(y, mo - 1, da, 12));
-      const wd = d === today ? 'Today' : date.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
-      const n = counts.get(d) || 0;
-      const title = `${dayName(d)}: ${n} match${n === 1 ? '' : 'es'}`;
-      html.push(`<button data-v="${d}" aria-pressed="${state.day === d && !state.now}" class="${n ? '' : 'empty'}" title="${esc(title)}"><span class="wd">${wd}</span><b>${da}</b><small>${short(n)}</small></button>`);
+    for (const b of $('#days').children) {
+      const n = daysFor(b.dataset.v).reduce((sum, d) => sum + (counts.get(d) || 0), 0);
+      b.setAttribute('aria-pressed', String(state.day === b.dataset.v && !state.now));
+      b.title = `${n.toLocaleString('en')} match${n === 1 ? '' : 'es'}`;
     }
-    $('#days').innerHTML = html.join('');
   }
 
   function renderSummary(siteCount) {
@@ -311,8 +323,11 @@
     const who = state.gender === 3 ? 'women’s & girls’' : 'men’s & boys’';
     let text = `${n.toLocaleString('en')} ${who} match${n === 1 ? '' : 'es'} at ${siteCount.toLocaleString('en')} venue${siteCount === 1 ? '' : 's'}`;
     if (state.now) text += ' playing now or within the hour';
-    else if (state.day !== 'all') text += ` · ${dayName(state.day)}`;
-    else text += ' · next two weeks';
+    else if (state.day === 'weekend' && periodDays.size) {
+      const days = [...periodDays].map((d) => new Date(`${d}T12:00:00Z`));
+      const short = (d, month) => d.toLocaleDateString('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', ...(month ? { month: 'short' } : {}) });
+      text += ` · this weekend (${days.length > 1 ? `${short(days[0])} – ` : ''}${short(days.at(-1), true)})`;
+    } else text += ` · ${PERIOD_TEXT[state.day]}`;
     if (me) {
       const nearest = nearestDistance();
       if (nearest != null) text += ` · nearest ${fmtKm(nearest)}`;
