@@ -11,14 +11,14 @@
     2: { 1: 'Allsvenskan', 2: 'Superettan', 3: 'Ettan', ...DIVISIONS },
     3: { 1: 'Damallsvenskan', 2: 'Elitettan', 3: 'Division 1', ...DIVISIONS },
   };
-  const CUP = 10; // filter keys: 10 cup, 11 reserves, 12 national team, 0 no tier
+  const CUP = 10; // filter keys: 10 Svenska Cupen, 11 reserves, 12 national team, 0 no tier
   const RESERVES = 11;
   const NATIONAL = 12;
   // Gender 4 is the federation's "mixed" (walking football, a few friendlies): shown in both modes.
   const tierNames = (gender) => TIER_NAMES[gender === 3 ? 3 : 2];
   const compKey = (c) => (c.tier === 'C' ? CUP : c.tier === 'R' ? RESERVES : c.tier ? Math.min(c.tier, 9) : 0);
   const tierKey = (m) => (m.nt ? NATIONAL : compKey(m.comp));
-  // Marker ranking: national team first, then tiers 1-8, then cups.
+  // Marker ranking: national team first, then tiers 1-8, then Svenska Cupen.
   const markerRank = (m) => (m.nt ? 0 : m.comp.tier === 'C' ? 50 : typeof m.comp.tier === 'number' ? m.comp.tier : 99);
   const logoUrl = (id) => `https://staticcdn.svenskfotboll.se/img/teamssm/${id}.png`;
   const matchUrl = (id) => `https://www.svenskfotboll.se/go-to/?fmid=${id}`;
@@ -39,7 +39,7 @@
   // Matches without a kickoff time sort after the timed ones on their day.
   const sortTime = (m) => (m.tbd ? m.t + 86_000 : m.t);
 
-  // Tier chips: 1-8, 9 = "9+", cup, reserves, 0 = no tier (youth, kids, veterans, friendlies).
+  // Tier chips: 1-8, 9 = "9+", Svenska Cupen, reserves, 0 = no tier (youth, kids, veterans, friendlies, other cups).
   const ALL_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, NATIONAL, CUP, RESERVES, 0];
   const STORE_KEY = 'fotbollskartan:filters:v4';
   const PERSISTED = ['gender', 'cats', 'tiers', 'level', 'age', 'approx', 'finished', 'listMode'];
@@ -386,14 +386,14 @@
   function tierBadge(m) {
     if (m.nt) return '<span class="tier tn" title="Sweden national team">SWE</span>';
     const comp = m.comp;
-    if (comp.tier === 'C') return '<span class="tier tc" title="Cup game">C</span>';
+    if (comp.tier === 'C') return '<span class="tier tc" title="Svenska Cupen">C</span>';
     if (comp.tier === 'R') return '<span class="tier tr" title="Reserve / B-team / development league">R</span>';
     if (!comp.tier) return '';
     const name = tierNames(comp.gender)[comp.tier] || 'lower division';
     return `<span class="tier t${Math.min(comp.tier, 9)}" title="Tier ${comp.tier}: ${name}">T${comp.tier}</span>`;
   }
 
-  // Small corner badge on a marker: the highest senior tier played there, else C for a cup game.
+  // Small corner badge on a marker: the highest senior tier played there, else C for Svenska Cupen.
   function cornerTier(tier) {
     if (tier === 0) return '<span class="corner tier tn">SWE</span>';
     if (tier <= 8) return `<span class="corner tier t${tier}">${tier}</span>`;
@@ -407,7 +407,7 @@
       const v = Number(b.dataset.v);
       if (v >= 1 && v <= 8) b.title = `Tier ${v} · ${names[v]}`;
     }
-    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}. C = cup game, SWE = Sweden national team.`;
+    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}. C = Svenska Cupen, SWE = Sweden national team.`;
   }
 
   function distKm(a, b) {

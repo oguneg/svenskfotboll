@@ -82,11 +82,14 @@ export function categoryOf(name, apiCategory) {
 
 // Level in the senior league pyramid, 1 = Allsvenskan/Damallsvenskan. Men and women share the
 // numbering: Ettan and women's Division 1 are both tier 3, and Division N is tier N + 2.
-// "C" = cups and district championships (any age), "R" = reserve, B-team and development
+// "C" = Svenska Cupen, "R" = reserve, B-team and development
 // leagues. Friendlies, qualifiers and national-team games have no tier.
 export function tierOf(name, category) {
   const n = fold(name);
-  if (/cup|\bdm\b/.test(n)) return 'C';
+  if (/svenska ?cupen/.test(n)) return 'C';
+  // Other cups and district championships (DM, Ligacupen, local cups) have no tier, even when
+  // their name mentions a division.
+  if (/cup|\bdm\b/.test(n)) return null;
   if (category !== 4) return null;
   // "Herr B Skåne" is a B-team league; "B-slutspel" is a playoff. SSH/SSD (Stockholm) and
   // Nivå (Halland) are the districts' reserve-team systems.
