@@ -25,7 +25,7 @@ svenskfotboll.se  ──►  scripts/update.mjs  ──►  public/data/matches.
                          └─ cache/venues.json          resolved venues, committed
 ```
 
-- **Fixtures** come from the JSON endpoint behind [Matcher idag](https://www.svenskfotboll.se/serier-cuper/matcher-idag/) (`/api/matches-today/games/?associationId=…&date=…`). The script queries SvFF plus all 24 district associations for today and the next 7 days (`DAYS=8`), which comes to about 10,000 matches a week. The match detail pages sit behind a Cloudflare challenge, so only this API is used.
+- **Fixtures** come from the JSON endpoint behind [Matcher idag](https://www.svenskfotboll.se/serier-cuper/matcher-idag/) (`/api/matches-today/games/?associationId=…&date=…`). The script queries SvFF plus all 24 district associations for today and the next 13 days (`DAYS=14`, this week and next): 350 small requests a day. District and youth games are rarely scheduled further out than two weeks. A typical week has about 10,000 matches. The match detail pages sit behind a Cloudflare challenge, so only this API is used.
 - **Venues** only come as names ("Hagby IP 3", "Norrvalla IP 2, Lammhult"), so `scripts/lib/geocode.mjs` places them in this order:
   1. **Name match.** Strip pitch qualifiers (numbers, "A-plan", "konstgräs 7-manna"), then look up what's left among OpenStreetMap's named pitches, stadiums, sports centres, schools and parks. Only the home club's district is searched. When a name like "Björkvallen" occurs several times there, the one closest to the club's town wins (the town is read from the team name, e.g. "Lammhults IF").
   2. **Pitch snap.** "Snogeröds IP" names its village. If OSM has exactly one football pitch there, named or not, that's the venue.

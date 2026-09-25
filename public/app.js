@@ -46,7 +46,7 @@
   const STORE_KEY = 'fotbollskartan:filters:v4';
   const PERSISTED = ['gender', 'cats', 'tiers', 'level', 'age', 'approx', 'finished', 'listMode'];
   const DEFAULTS = {
-    day: null, gender: 2, cats: [4, 3, 2, 5], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
+    day: null, range: 0, gender: 2, cats: [4, 3, 2, 5], tiers: ALL_TIERS, level: 'all', age: '', q: '', approx: true,
     finished: false, now: false, listMode: 'view', sort: 'time',
   };
   const state = { ...DEFAULTS, ...pick(store.get(STORE_KEY, {}), PERSISTED) };
@@ -60,6 +60,7 @@
   let shown = PAGE;
   let visible = []; // filtered matches, recomputed on every render
   let markerBySite = new Map();
+  let rangeSet = new Set(); // days of the selected week (this week = today + 6 days)
 
   function pick(obj, keys) {
     return Object.fromEntries(keys.filter((k) => k in obj).map((k) => [k, obj[k]]));
@@ -153,9 +154,9 @@
 
     // Start on the first day that still has matches to go (late evening that's tomorrow).
     const now = nowSec();
-    const today = ymd(new Date());
-    const upcoming = data.days.filter((d) => d >= today);
-    state.day = upcoming.find((d) => matches.some((m) => m.day === d && !m.tbd && passes(m, now, { ignoreDay: true }))) || upcoming[0] || 'all';
+    syncRange();
+    const upcoming = [...rangeSet];
+    state.day = upcoming.find((d) => matches.some((m) => m.day === d && !m.tbd && passes(m, now, { ignoreDay: true }))) || 'all';
     $('#updated').textContent = `Last update ${fmtStamp.format(new Date(data.generated))}.`;
     buildAgeOptions();
     syncControls();
@@ -199,12 +200,13 @@
       return !m.tbd && m.status !== 3 && m.status !== 2 && m.status !== 4 && m.t - 3600 <= now && m.t + PLAYING_SECS >= now;
     }
     if (!state.finished && isFinished(m, now)) return false;
-    if (!ignoreDay && state.day !== 'all' && m.day !== state.day) return false;
+    if (!ignoreDay && (state.day === 'all' ? !rangeSet.has(m.day) : m.day !== state.day)) return false;
     return true;
   }
 
   // ---------- render ----------
   function render({ fit = false } = {}) {
+    syncRange(); // the week rolls over at midnight while the page is open
     const now = nowSec();
     const today = ymd(new Date());
     visible = matches.filter((m) => passes(m, now));
@@ -270,11 +272,18 @@
     if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.1), { maxZoom: 13 });
   }
 
+  // This week = today and the next 6 days; next week = the 7 after that (as far as the data goes).
+  function syncRange() {
+    const today = ymd(new Date());
+    const ahead = data.days.filter((d) => d >= today);
+    rangeSet = new Set(ahead.slice(state.range * 7, state.range * 7 + 7));
+  }
+
   function renderDays(now) {
     const counts = new Map();
     let total = 0;
     for (const m of matches) {
-      if (!passes(m, now, { ignoreDay: true })) continue;
+      if (!rangeSet.has(m.day) || !passes(m, now, { ignoreDay: true })) continue;
       counts.set(m.day, (counts.get(m.day) || 0) + 1);
       total++;
     }
@@ -284,11 +293,11 @@
       if (d === today) return 'Today';
       if (d === tomorrow) return 'Tomorrow';
       const [y, mo, da] = d.split('-').map(Number);
-      return new Date(Date.UTC(y, mo - 1, da, 12)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
+      const opts = { weekday: 'short', day: 'numeric', timeZone: 'UTC', ...(state.range ? { month: 'short' } : {}) };
+      return new Date(Date.UTC(y, mo - 1, da, 12)).toLocaleDateString('en-GB', opts);
     };
     const html = [`<button data-v="all" aria-pressed="${state.day === 'all' && !state.now}">All week <small>${total}</small></button>`];
-    for (const d of data.days) {
-      if (d < today) continue;
+    for (const d of rangeSet) {
       html.push(`<button data-v="${d}" aria-pressed="${state.day === d && !state.now}">${label(d)} <small>${counts.get(d) || 0}</small></button>`);
     }
     $('#days').innerHTML = html.join('');
@@ -300,6 +309,7 @@
     let text = `${n.toLocaleString('en')} ${who} match${n === 1 ? '' : 'es'} at ${siteCount.toLocaleString('en')} venue${siteCount === 1 ? '' : 's'}`;
     if (state.now) text += ' playing now or within the hour';
     else if (state.day !== 'all') text += ` · ${dayName(state.day)}`;
+    else text += state.range ? ' · next week' : ' · this week';
     if (me) {
       const nearest = nearestDistance();
       if (nearest != null) text += ` · nearest ${fmtKm(nearest)}`;
@@ -476,6 +486,7 @@
 
   function syncControls() {
     for (const b of $('#gender').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === state.gender));
+    for (const b of $('#range').children) b.setAttribute('aria-pressed', String(Number(b.dataset.v) === state.range));
     for (const b of $('#cats').children) b.setAttribute('aria-pressed', String(state.cats.includes(Number(b.dataset.v))));
     for (const b of $('#tiers').querySelectorAll('button')) b.setAttribute('aria-pressed', String(state.tiers.includes(Number(b.dataset.v))));
     syncTierLabels();
@@ -489,18 +500,31 @@
     $('#now').setAttribute('aria-pressed', String(state.now));
   }
 
+  // What the folded-away filters are doing, e.g. "Senior · T3, T4 · District series".
+  const CAT_NAMES = { 4: 'Senior', 3: 'Youth', 2: 'Kids', 5: 'Vets & rec' };
+  const TIER_SHORT = { 9: '9+', [CUP]: 'Svenska Cupen', [RESERVES]: 'Reserves', [NATIONAL]: 'National team', 0: 'Other' };
+  function activeFilters() {
+    const parts = [];
+    if (state.cats.length < DEFAULTS.cats.length) {
+      parts.push(DEFAULTS.cats.filter((c) => state.cats.includes(c)).map((c) => CAT_NAMES[c]).join(', '));
+    }
+    if (state.tiers.length < ALL_TIERS.length) {
+      parts.push(ALL_TIERS.filter((t) => state.tiers.includes(t)).map((t) => TIER_SHORT[t] || `T${t}`).join(', ') || 'No tiers');
+    }
+    if (state.level !== 'all') parts.push(state.level === 'national' ? 'National series' : 'District series');
+    if (state.age) parts.push(`${state.gender === 3 ? 'F' : 'P'}${state.age}`);
+    if (!state.approx) parts.push('Exact locations only');
+    if (state.finished) parts.push('Incl. finished');
+    return parts;
+  }
+
   function updateFilterBadge() {
-    let n = 0;
-    if (state.cats.length < DEFAULTS.cats.length) n++;
-    if (state.tiers.length < ALL_TIERS.length) n++;
-    if (state.level !== 'all') n++;
-    if (state.age) n++;
-    if (state.q) n++;
-    if (!state.approx) n++;
-    if (state.finished) n++;
-    const el = $('#filterCount');
-    el.hidden = !n;
-    el.textContent = n;
+    const parts = activeFilters();
+    for (const el of document.querySelectorAll('.filter-count')) {
+      el.hidden = !parts.length;
+      el.textContent = parts.length;
+    }
+    $('#filterSummary').textContent = parts.join(' · ') || 'All matches';
   }
 
   function changed(opts) {
@@ -570,6 +594,15 @@
   }
 
   // ---------- events ----------
+  $('#range').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || Number(b.dataset.v) === state.range) return;
+    state.range = Number(b.dataset.v);
+    state.day = 'all';
+    state.now = false;
+    syncRange();
+    changed();
+  });
   $('#days').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -617,7 +650,7 @@
     }, 250);
   });
   $('#reset').addEventListener('click', () => {
-    Object.assign(state, { ...DEFAULTS, day: state.day, gender: state.gender, sort: me ? 'dist' : 'time' });
+    Object.assign(state, { ...DEFAULTS, day: state.day, range: state.range, gender: state.gender, sort: me ? 'dist' : 'time' });
     changed();
   });
   $('#now').addEventListener('click', () => {
@@ -677,12 +710,20 @@
   }
   $('#sheetHandle').addEventListener('click', () => setSheet(!panel.classList.contains('open')));
   $('#summary').addEventListener('click', () => setSheet(!panel.classList.contains('open')));
+  // The detailed filters fold away; the choice is remembered.
+  const FOLD_KEY = 'fotbollskartan:filtersOpen';
+  function setFold(open) {
+    $('#moreFilters').hidden = !open;
+    $('#foldToggle').setAttribute('aria-expanded', String(open));
+    store.set(FOLD_KEY, open);
+    sizePeek();
+  }
+  setFold(store.get(FOLD_KEY, false));
+  $('#foldToggle').addEventListener('click', () => setFold($('#moreFilters').hidden));
+  // Phone header shortcut: open the sheet with the filters unfolded.
   $('#filtersToggle').addEventListener('click', () => {
-    const f = $('#filters');
-    const open = !f.classList.contains('open');
-    f.classList.toggle('open', open);
-    $('#filtersToggle').setAttribute('aria-expanded', String(open));
-    if (open) setSheet(true);
+    setSheet(true);
+    setFold(true);
   });
   function sizePeek() {
     const h = document.querySelector('.brand').offsetHeight + 8;

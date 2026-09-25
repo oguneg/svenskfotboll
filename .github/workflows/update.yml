@@ -76,7 +76,7 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: node scripts/update.mjs
         env:
-          DAYS: 8
+          DAYS: 14
           NOMINATIM_BUDGET: 150
 
       - name: Commit venue cache

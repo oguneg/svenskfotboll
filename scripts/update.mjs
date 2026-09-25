@@ -2,7 +2,7 @@
 // venue on the map and write public/data/matches.json for the static site.
 //
 //   node scripts/update.mjs               # normal run
-//   DAYS=8 NOMINATIM_BUDGET=150 node scripts/update.mjs
+//   DAYS=14 NOMINATIM_BUDGET=150 node scripts/update.mjs
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -21,7 +21,9 @@ const OVERRIDES = join(ROOT, 'cache', 'venue-overrides.json');
 const CRESTS = join(ROOT, 'public', 'crests');
 const CRESTS_MISSING = join(ROOT, 'cache', 'crests-missing.json');
 
-const DAYS = Number(process.env.DAYS || 8);
+// Today plus 13 days: this week and next. District and youth games are rarely scheduled further
+// ahead, and 25 associations × 14 days = 350 small requests a day is as far as we want to go.
+const DAYS = Number(process.env.DAYS || 14);
 const NOMINATIM_BUDGET = Number(process.env.NOMINATIM_BUDGET ?? 150);
 const TZ = 'Europe/Stockholm';
 

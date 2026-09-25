@@ -63,6 +63,7 @@ button, input, select { font: inherit; color: inherit; }
   border-right: 1px solid var(--line);
   z-index: 1000;
   min-height: 0;
+  overflow-y: auto; /* only kicks in when unfolded filters leave the list too little room */
 }
 .brand { padding: 14px 16px 8px; border-bottom: 1px solid var(--line); }
 .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -70,10 +71,21 @@ h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
 .tagline { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
 .sheet-handle { display: none; }
 
-.filters { padding: 12px 16px 2px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.filters { padding: 12px 16px 12px; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
+.more-filters { display: grid; gap: 10px; }
+.fold {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0;
+  padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--panel-2); cursor: pointer; font-size: 13.5px; text-align: left;
+}
+.fold .chev { flex: none; color: var(--muted); transition: transform .15s ease; }
+.fold[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.fold-title { font-weight: 700; flex: none; }
+.fold .badge { flex: none; }
+.fold-sum { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
 .filters .row.selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.checks { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding-bottom: 8px; }
+.checks { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
 .checks .btn-link { margin-left: auto; }
 select, input[type="search"] {
   width: 100%;
@@ -140,7 +152,7 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 #filtersToggle { display: none; }
 
 /* ---------- list ---------- */
-.list-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.list-section { flex: 1; min-height: 260px; display: flex; flex-direction: column; }
 .list-head { display: flex; gap: 8px; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--line); }
 .matches { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; overscroll-behavior: contain; }
 .day-head {
@@ -372,8 +384,10 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
     content: ""; position: absolute; left: 50%; top: 8px; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: var(--line);
   }
   #filtersToggle { display: inline-flex; }
-  .filters { display: none; }
-  .filters.open { display: grid; }
+  /* On phones the whole sheet scrolls as one page: filters, then the list. */
+  .panel { overscroll-behavior: contain; }
+  .list-section { flex: none; min-height: 0; }
+  .matches { overflow: visible; flex: none; }
   .map-wrap { z-index: 0; }
   .leaflet-bottom { bottom: var(--peek, 150px); }
   .map-controls { top: auto; bottom: calc(var(--peek, 150px) + 26px); right: 12px; }

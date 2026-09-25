@@ -18,7 +18,7 @@
         <button class="sheet-handle" id="sheetHandle" aria-label="Expand match list" aria-expanded="false"></button>
         <div class="brand-row">
           <h1><span aria-hidden="true">⚽</span> Fotbollskartan</h1>
-          <button class="btn btn-ghost" id="filtersToggle" aria-expanded="false" aria-controls="filters">Filters <span class="badge" id="filterCount" hidden></span></button>
+          <button class="btn btn-ghost" id="filtersToggle" aria-controls="moreFilters">Filters <span class="badge filter-count" hidden></span></button>
         </div>
         <p class="tagline" id="summary">Loading matches…</p>
       </header>
@@ -29,6 +29,11 @@
           <input id="q" type="search" placeholder="Search team, league or venue" autocomplete="off">
         </label>
 
+        <div class="segmented small range" id="range" role="group" aria-label="Which week">
+          <button data-v="0" aria-pressed="true">This week</button>
+          <button data-v="1" aria-pressed="false">Next week</button>
+        </div>
+
         <div class="chips scroll" id="days" role="group" aria-label="Day"></div>
 
         <div class="segmented gender" id="gender" role="group" aria-label="Men's or women's football">
@@ -36,56 +41,65 @@
           <button data-v="3" aria-pressed="false">Women &amp; girls</button>
         </div>
 
-        <div class="row">
-          <div class="chips" id="cats" role="group" aria-label="Category">
-            <button data-v="4" aria-pressed="true">Senior</button>
-            <button data-v="3" aria-pressed="true">Youth</button>
-            <button data-v="2" aria-pressed="true">Kids</button>
-            <button data-v="5" aria-pressed="true" title="Veterans (Vet, Old boys), recreational Motion leagues, walking football and 7-a-side adult leagues">Vets &amp; rec</button>
-          </div>
-        </div>
+        <button class="fold" id="foldToggle" type="button" aria-expanded="false" aria-controls="moreFilters">
+          <svg class="chev" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="fold-title">Filters</span>
+          <span class="badge filter-count" hidden></span>
+          <span class="fold-sum" id="filterSummary">All matches</span>
+        </button>
 
-        <div class="tier-filter">
-          <span class="tier-label" id="tierLabel">Tier <small>· tap to pick, tap more to add</small></span>
-          <div class="tier-chips" id="tiers" role="group" aria-labelledby="tierLabel">
-            <div class="tier-row">
-            <button class="tier t1" data-v="1" aria-pressed="true" title="Tier 1 · Allsvenskan / Damallsvenskan">1</button>
-            <button class="tier t2" data-v="2" aria-pressed="true" title="Tier 2 · Superettan / Elitettan">2</button>
-            <button class="tier t3" data-v="3" aria-pressed="true" title="Tier 3 · Ettan / Division 1 (women)">3</button>
-            <button class="tier t4" data-v="4" aria-pressed="true" title="Tier 4 · Division 2">4</button>
-            <button class="tier t5" data-v="5" aria-pressed="true" title="Tier 5 · Division 3">5</button>
-            <button class="tier t6" data-v="6" aria-pressed="true" title="Tier 6 · Division 4">6</button>
-            <button class="tier t7" data-v="7" aria-pressed="true" title="Tier 7 · Division 5">7</button>
-            <button class="tier t8" data-v="8" aria-pressed="true" title="Tier 8 · Division 6">8</button>
-            <button class="tier t9" data-v="9" aria-pressed="true" title="Tier 9+ · Division 7 and below">9+</button>
-            </div>
-            <div class="tier-row special">
-              <button class="tier-pill" data-v="12" aria-pressed="true" title="Sweden's national teams, senior and youth"><i class="tier tn">SWE</i>National team</button>
-              <button class="tier-pill" data-v="10" aria-pressed="true" title="Svenska Cupen"><i class="tier tc">C</i>Svenska Cupen</button>
-              <button class="tier-pill" data-v="11" aria-pressed="true" title="Reserve, B-team and development leagues"><i class="tier tr">R</i>Reserves</button>
-              <button class="tier-pill" data-v="0" aria-pressed="true" title="No tier: youth, kids' and veterans' leagues, friendlies, qualifiers, district championships (DM) and other cups">Other</button>
+        <div class="more-filters" id="moreFilters" hidden>
+          <div class="row">
+            <div class="chips" id="cats" role="group" aria-label="Category">
+              <button data-v="4" aria-pressed="true">Senior</button>
+              <button data-v="3" aria-pressed="true">Youth</button>
+              <button data-v="2" aria-pressed="true">Kids</button>
+              <button data-v="5" aria-pressed="true" title="Veterans (Vet, Old boys), recreational Motion leagues, walking football and 7-a-side adult leagues">Vets &amp; rec</button>
             </div>
           </div>
-          <span class="tier-quick"><button class="btn-link" id="tiersAll" type="button">Show all</button></span>
-        </div>
 
-        <div class="row selects">
-          <label><span class="visually-hidden">Level</span>
-            <select id="level">
-              <option value="all">All leagues</option>
-              <option value="national">National series</option>
-              <option value="district">District series</option>
-            </select>
-          </label>
-          <label><span class="visually-hidden">Age group</span>
-            <select id="age"><option value="">Any age</option></select>
-          </label>
-        </div>
+          <div class="tier-filter">
+            <span class="tier-label" id="tierLabel">Tier <small>· tap to pick, tap more to add</small></span>
+            <div class="tier-chips" id="tiers" role="group" aria-labelledby="tierLabel">
+              <div class="tier-row">
+              <button class="tier t1" data-v="1" aria-pressed="true" title="Tier 1 · Allsvenskan / Damallsvenskan">1</button>
+              <button class="tier t2" data-v="2" aria-pressed="true" title="Tier 2 · Superettan / Elitettan">2</button>
+              <button class="tier t3" data-v="3" aria-pressed="true" title="Tier 3 · Ettan / Division 1 (women)">3</button>
+              <button class="tier t4" data-v="4" aria-pressed="true" title="Tier 4 · Division 2">4</button>
+              <button class="tier t5" data-v="5" aria-pressed="true" title="Tier 5 · Division 3">5</button>
+              <button class="tier t6" data-v="6" aria-pressed="true" title="Tier 6 · Division 4">6</button>
+              <button class="tier t7" data-v="7" aria-pressed="true" title="Tier 7 · Division 5">7</button>
+              <button class="tier t8" data-v="8" aria-pressed="true" title="Tier 8 · Division 6">8</button>
+              <button class="tier t9" data-v="9" aria-pressed="true" title="Tier 9+ · Division 7 and below">9+</button>
+              </div>
+              <div class="tier-row special">
+                <button class="tier-pill" data-v="12" aria-pressed="true" title="Sweden's national teams, senior and youth"><i class="tier tn">SWE</i>National team</button>
+                <button class="tier-pill" data-v="10" aria-pressed="true" title="Svenska Cupen"><i class="tier tc">C</i>Svenska Cupen</button>
+                <button class="tier-pill" data-v="11" aria-pressed="true" title="Reserve, B-team and development leagues"><i class="tier tr">R</i>Reserves</button>
+                <button class="tier-pill" data-v="0" aria-pressed="true" title="No tier: youth, kids' and veterans' leagues, friendlies, qualifiers, district championships (DM) and other cups">Other</button>
+              </div>
+            </div>
+            <span class="tier-quick"><button class="btn-link" id="tiersAll" type="button">Show all</button></span>
+          </div>
 
-        <div class="checks">
-          <label class="check"><input type="checkbox" id="approx" checked> Approximate locations</label>
-          <label class="check"><input type="checkbox" id="finished"> Finished matches</label>
-          <button class="btn btn-link" id="reset" type="button">Reset</button>
+          <div class="row selects">
+            <label><span class="visually-hidden">Level</span>
+              <select id="level">
+                <option value="all">All leagues</option>
+                <option value="national">National series</option>
+                <option value="district">District series</option>
+              </select>
+            </label>
+            <label><span class="visually-hidden">Age group</span>
+              <select id="age"><option value="">Any age</option></select>
+            </label>
+          </div>
+
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="approx" checked> Approximate locations</label>
+            <label class="check"><input type="checkbox" id="finished"> Finished matches</label>
+            <button class="btn btn-link" id="reset" type="button">Reset</button>
+          </div>
         </div>
       </section>
 
