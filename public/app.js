@@ -67,6 +67,17 @@
   const map = L.map('map', { zoomControl: true, worldCopyJump: false, minZoom: 4 }).fitBounds(SWEDEN);
   map.zoomControl.setPosition('bottomright');
   map.attributionControl.setPrefix(false); // drop Leaflet's own credit; the OSM credit below stays (required)
+
+  // A page opened while hidden (background tab, collapsed pane) measures the map as 0×0 and
+  // frames Sweden wrongly. Re-measure on every size change and redo the first framing once.
+  let framed = map.getSize().x > 0;
+  new ResizeObserver(() => {
+    map.invalidateSize();
+    if (framed || map.getSize().x === 0) return;
+    framed = true;
+    if (me) zoomToNearby();
+    else map.fitBounds(SWEDEN);
+  }).observe(document.getElementById('map'));
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -397,7 +408,7 @@
   // Small corner badge on a marker: the highest senior tier played there, else C for Svenska Cupen.
   function cornerTier(tier) {
     if (tier === 0) return '<span class="corner tier tn">SWE</span>';
-    if (tier <= 8) return `<span class="corner tier t${tier}">${tier}</span>`;
+    if (tier <= 10) return `<span class="corner tier t${Math.min(tier, 9)}">${tier}</span>`;
     return tier === 50 ? '<span class="corner tier tc">C</span>' : '';
   }
 
@@ -408,7 +419,7 @@
       const v = Number(b.dataset.v);
       if (v >= 1 && v <= 8) b.title = `Tier ${v} · ${names[v]}`;
     }
-    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}. C = Svenska Cupen, SWE = Sweden national team.`;
+    $('#tierLegend').title = `Highest senior tier played at a venue: 1 = ${names[1]}, 2 = ${names[2]}, 3 = ${names[3]} … 8 = ${names[8]}, 9+ = ${names[9]} and below. C = Svenska Cupen, SWE = Sweden national team.`;
   }
 
   function distKm(a, b) {

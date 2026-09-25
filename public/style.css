@@ -210,7 +210,7 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .tier.t6 { background: #5a93dc; color: #0d1f38; }
 .tier.t7 { background: #8fb6ea; color: #0d1f38; }
 .tier.t8 { background: #c6daf4; color: #0d1f38; }
-.tier.t9 { background: var(--panel-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.tier.t9 { background: #5f6b78; color: #fff; }
 .tier.tc { background: #7a2e8e; color: #fff; }
 .tier.tr { background: #3f6f64; color: #fff; }
 .site-icon, .cluster-icon { position: relative; }
