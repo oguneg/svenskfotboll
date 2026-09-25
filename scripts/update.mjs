@@ -11,12 +11,15 @@ import { fetchAll } from './lib/svff.mjs';
 import { loadGazetteer } from './lib/osm.mjs';
 import { VenueResolver } from './lib/geocode.mjs';
 import { fold } from './lib/names.mjs';
+import { syncCrests } from './lib/crests.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'public', 'data', 'matches.json');
 const GAZETTEER = join(ROOT, 'cache', 'osm-gazetteer.json');
 const VENUE_CACHE = join(ROOT, 'cache', 'venues.json');
 const OVERRIDES = join(ROOT, 'cache', 'venue-overrides.json');
+const CRESTS = join(ROOT, 'public', 'crests');
+const CRESTS_MISSING = join(ROOT, 'cache', 'crests-missing.json');
 
 const DAYS = Number(process.env.DAYS || 8);
 const NOMINATIM_BUDGET = Number(process.env.NOMINATIM_BUDGET ?? 150);
@@ -172,6 +175,19 @@ async function main() {
       g.id, stockholmToEpoch(g.date), g.status, tbd, g.home, g.away,
       comps.get(c.id).i, venues.get(vKey).i, logoId(g.homeLogo), logoId(g.awayLogo), sweden ? 1 : 0,
     ]);
+  }
+
+  log('Syncing club crests');
+  const crestIds = new Set(matches.flatMap((m) => [m[8], m[9]]));
+  try {
+    const available = await syncCrests(crestIds, CRESTS, CRESTS_MISSING, { today, log });
+    for (const m of matches) {
+      if (!available.has(m[8])) m[8] = 0;
+      if (!available.has(m[9])) m[9] = 0;
+    }
+  } catch (err) {
+    log(`  WARNING: crests unavailable (${err.message}); showing none`);
+    for (const m of matches) m[8] = m[9] = 0;
   }
 
   const venueRows = [...venues.values()].map((v) => v.row);

@@ -214,6 +214,28 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .tier.tc { background: #7a2e8e; color: #fff; }
 .tier.tr { background: #3f6f64; color: #fff; }
 .site-icon, .cluster-icon { position: relative; }
+
+/* Crests: 100×56 images with the badge centred, so crop to the middle. */
+.crest { width: 18px; height: 18px; object-fit: cover; vertical-align: -4px; margin-right: 5px; }
+.site-icon.crest {
+  width: 38px; height: 38px; padding: 0; overflow: visible;
+  background: #fff; border: 3px solid var(--later);
+}
+.site-icon.crest img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.site-icon.crest.live { background: #fff; border-color: var(--live); }
+.site-icon.crest.soon { border-color: var(--soon); }
+.site-icon.crest.today { border-color: var(--today); }
+.site-icon.crest.past { border-color: var(--past); }
+.site-icon.crest.past img { opacity: .6; }
+.site-icon.crest.approx { border-style: dashed; }
+.site-icon.crest.national { border-color: #fecc02; background: #fff; }
+.site-icon.crest .count {
+  position: absolute; bottom: -6px; right: -8px;
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: var(--text); color: var(--panel); font-size: 10.5px; font-weight: 800;
+  box-shadow: 0 0 0 1.5px #fff;
+}
 /* National-team venues: Swedish blue with a gold ring, drawn above everything else. */
 .site-icon.national {
   width: 38px; height: 38px; font-size: 14px;
@@ -327,7 +349,7 @@ select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px s
 .pop .t { font-weight: 700; font-variant-numeric: tabular-nums; }
 .pop .tm { font-weight: 600; display: flex; flex-direction: column; gap: 2px; }
 .pop .tm span { display: flex; align-items: center; gap: 6px; }
-.pop .tm img { width: 18px; height: 18px; object-fit: contain; flex: none; }
+.pop .tm img { flex: none; margin: 0; }
 .pop .c { grid-column: 2; color: var(--muted); font-size: 12.5px; }
 .pop .c a { white-space: nowrap; }
 

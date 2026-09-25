@@ -20,7 +20,9 @@
   const tierKey = (m) => (m.nt ? NATIONAL : compKey(m.comp));
   // Marker ranking: national team first, then tiers 1-8, then Svenska Cupen.
   const markerRank = (m) => (m.nt ? 0 : m.comp.tier === 'C' ? 50 : typeof m.comp.tier === 'number' ? m.comp.tier : 99);
-  const logoUrl = (id) => `https://staticcdn.svenskfotboll.se/img/teamssm/${id}.png`;
+  // Club crests are published with the site (see scripts/lib/crests.mjs); id 0 = no crest.
+  const crestUrl = (id) => `crests/${id}.png`;
+  const crestImg = (id) => (id ? `<img class="crest" src="${crestUrl(id)}" alt="" loading="lazy">` : '');
   const matchUrl = (id) => `https://www.svenskfotboll.se/go-to/?fmid=${id}`;
 
   const $ = (s) => document.querySelector(s);
@@ -85,7 +87,8 @@
 
   const clusters = L.markerClusterGroup({
     showCoverageOnHover: false,
-    maxClusterRadius: 48,
+    // Group generously when zoomed out; at city level keep venues (and their crests) apart.
+    maxClusterRadius: (zoom) => (zoom <= 8 ? 55 : zoom <= 10 ? 40 : 26),
     disableClusteringAtZoom: 15,
     spiderfyOnMaxZoom: true,
     chunkedLoading: true,
@@ -213,17 +216,27 @@
     for (const [site, ms] of bySite) {
       let best = 'past';
       let tier = 99;
+      let top = null; // the match the marker represents: highest tier, then soonest
       for (const m of ms) {
         const b = bucket(m, now, today);
         if (RANK[b] < RANK[best]) best = b;
-        tier = Math.min(tier, markerRank(m));
+        const r = markerRank(m);
+        if (!top || r < tier || (r === tier && sortTime(m) < sortTime(top))) {
+          tier = r;
+          top = m;
+        }
       }
       const national = tier === 0;
+      // Senior league, national-team and Svenska Cupen venues show the home club's crest; the
+      // ring keeps the timing colour and the match count moves to a small bubble.
+      const crest = tier <= 10 || tier === 50 ? top.hl : 0;
+      const classes = `site-icon ${best}${site.approx ? ' approx' : ''}${national ? ' national' : ''}${crest ? ' crest' : ''}`;
+      const inner = crest ? `<img src="${crestUrl(crest)}" alt="">${ms.length > 1 ? `<b class="count">${ms.length}</b>` : ''}` : ms.length;
       const marker = L.marker([site.lat, site.lon], {
         icon: L.divIcon({
-          html: `<div class="site-icon ${best}${site.approx ? ' approx' : ''}${national ? ' national' : ''}">${ms.length}${cornerTier(tier)}</div>`,
+          html: `<div class="${classes}">${inner}${cornerTier(tier)}</div>`,
           className: 'site',
-          iconSize: national ? [38, 38] : [30, 30],
+          iconSize: crest || national ? [38, 38] : [30, 30],
         }),
         zIndexOffset: national ? 1000 : 0,
         count: ms.length,
@@ -347,7 +360,7 @@
       const tags = statusTags(m, b);
       out.push(`<li class="match${m.venue.site ? '' : ' nolocation'}${m.nt ? ' national' : ''}" tabindex="0" data-id="${m.id}">
         <span class="time">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
-        <span class="teams">${esc(m.home)} <span>–</span> ${esc(m.away)}${tags}</span>
+        <span class="teams">${crestImg(m.hl)}${esc(m.home)} <span>–</span> ${crestImg(m.al)}${esc(m.away)}${tags}</span>
         <span class="dist">${d != null ? fmtKm(d) : ''}</span>
         <span class="meta">${state.sort === 'dist' ? esc(dayName(m.day)) + ' · ' : ''}${tierBadge(m)}${esc(m.comp.name)} · ${m.venue.name ? esc(m.venue.name) : 'Venue not listed'}${m.venue.site ? '' : ' (not on map)'}</span>
       </li>`);
@@ -385,7 +398,7 @@
         lastDay = m.day;
       }
       const b = bucket(m, now, today);
-      const team = (name, logo) => `<span>${logo ? `<img src="${logoUrl(logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}${esc(name)}</span>`;
+      const team = (name, crest) => `<span>${crestImg(crest)}${esc(name)}</span>`;
       out.push(`<li class="m${m.nt ? ' national' : ''}"><span class="t">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="tm">${team(m.home, m.hl)}${team(m.away, m.al)}</span>
         <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);

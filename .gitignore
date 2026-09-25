@@ -4,4 +4,6 @@ public/data/
 # OSM extract (~3 MB), kept in the GitHub Actions cache and rebuilt monthly.
 cache/osm-gazetteer.json
 cache/osm-tiles/
+# Club crests, downloaded by scripts/update.mjs and kept in the GitHub Actions cache.
+public/crests/
 .claude/

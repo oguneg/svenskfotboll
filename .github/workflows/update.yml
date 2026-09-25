@@ -63,6 +63,15 @@ jobs:
           key: osm-gazetteer-${{ github.run_id }}
           restore-keys: osm-gazetteer-
 
+      # Club crests (~2,200 small PNGs) are downloaded once and kept here, not in git.
+      - name: Restore club crests
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: public/crests
+          key: crests-${{ github.run_id }}
+          restore-keys: crests-
+
       - name: Fetch matches and place venues
         if: steps.gate.outputs.run == 'true'
         run: node scripts/update.mjs

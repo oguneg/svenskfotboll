@@ -32,6 +32,7 @@ svenskfotboll.se  ──►  scripts/update.mjs  ──►  public/data/matches.
   3. **Nominatim**, at most 150 lookups a run at one per second. Venues with no position at all come before approximate ones.
   4. **Approximate.** Otherwise the venue goes on the nearest football pitch in the club's town (or the town centre) and gets a dashed marker.
 - **Resolved venues** are cached in `cache/venues.json`, so each daily run only has to geocode venues it hasn't seen before.
+- **Club crests** are downloaded once per club (`scripts/lib/crests.mjs`), refreshed every 60 days, kept in the Actions cache and published with the site, so visitors never load images from svenskfotboll.se. Venues hosting a senior league, national-team or Svenska Cupen game show the home club's crest on the map.
 
 ## Daily update
 
