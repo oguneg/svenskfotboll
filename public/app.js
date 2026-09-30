@@ -373,10 +373,10 @@
     const items = listItems();
     const list = $('#list');
     if (!items.length) {
-      const hint = state.listMode === 'view' && visible.length
-        ? 'No matches in this part of the map. Zoom out or switch to “All”.'
-        : 'No matches for these filters.';
-      list.innerHTML = `<li class="empty">${hint}</li>`;
+      const offMap = state.listMode === 'view' && visible.length;
+      list.innerHTML = offMap
+        ? `<li class="empty">No matches in this part of the map.<button class="btn btn-link" data-action="all">Show all ${visible.length.toLocaleString('en')} in the list</button></li>`
+        : `<li class="empty">No matches for these filters.<button class="btn btn-link" data-action="reset">Reset filters</button></li>`;
       $('#more').hidden = true;
       return;
     }
@@ -419,7 +419,7 @@
     const out = [`<div class="pop"><h3>${esc(site.title)}</h3><div class="sub">`];
     out.push(`<span>${ms.length} match${ms.length === 1 ? '' : 'es'}</span>`);
     if (me) out.push(`<span>${fmtKm(distKm(me, [site.lat, site.lon]))} away</span>`);
-    out.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${site.lat},${site.lon}" target="_blank" rel="noopener">Directions ↗</a></div>`);
+    out.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${site.lat},${site.lon}" target="_blank" rel="noopener">Directions</a></div>`);
     if (site.approx) {
       out.push('<div class="note">Approximate location. This pitch isn’t named on OpenStreetMap, so it’s placed at a football ground in the club’s town.</div>');
     }
@@ -434,7 +434,7 @@
       const team = (name, crest) => `<span>${crestImg(crest)}${esc(name)}</span>`;
       out.push(`<li class="m${m.nt ? ' national' : ''}"><span class="t">${m.tbd ? 'TBD' : fmtTime.format(new Date(m.t * 1000))}</span>
         <span class="tm">${team(m.home, m.hl)}${team(m.away, m.al)}</span>
-        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page ↗</a></span></li>`);
+        <span class="c">${statusTags({ ...m, venue: { approx: false } }, b)} ${tierBadge(m)}${esc(m.comp.name)}${multiple && m.venue.name !== site.title ? ` · ${esc(m.venue.name)}` : ''} · <a href="${matchUrl(m.id)}" target="_blank" rel="noopener">Match page</a></span></li>`);
     }
     out.push('</ol></div>');
     return out.join('');
@@ -695,6 +695,9 @@
     clusters.zoomToShowLayer(marker, () => marker.openPopup());
   }
   $('#list').addEventListener('click', (e) => {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (action === 'reset') return $('#reset').click();
+    if (action === 'all') return $('#listMode [data-v="all"]').click();
     if (e.target.closest('a')) return;
     const li = e.target.closest('.match');
     if (li) openMatch(li);

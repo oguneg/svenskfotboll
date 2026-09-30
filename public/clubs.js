@@ -180,8 +180,8 @@
       <div class="sub"><span>${esc(s.venue)}${s.approx ? ' (approx.)' : ''}</span></div></div></div>
       ${sideLine('Men', c.men, 2)}${sideLine('Women', c.women, 3)}
       <div class="club-games" id="clubGames"><span class="muted">Loading home games…</span></div>
-      <div class="sub"><a href="./?q=${encodeURIComponent(c.name)}">Show on the match map ↗</a>
-      <a href="https://www.google.com/maps/dir/?api=1&destination=${s.ll.lat},${s.ll.lng}" target="_blank" rel="noopener">Directions ↗</a></div>
+      <div class="sub"><a href="./?q=${encodeURIComponent(c.name)}">Show on the match map</a>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${s.ll.lat},${s.ll.lng}" target="_blank" rel="noopener">Directions</a></div>
     </div>`;
     const marker = shown.get(c.id);
     // Keep the popup clear of the floating search card when the map pans to show it.
